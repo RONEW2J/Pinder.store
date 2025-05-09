@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Messages | Tinder Clone{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/chat.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="chat-container">
+    <div class="conversations-list">
+        <div class="search-bar">
+            <input type="text" id="conversationSearch" placeholder="Search messages...">
+            <i class="fas fa-search"></i>
+        </div>
+        
+        <div class="conversation-items">
+            {% for conversation in conversations %}
+                <a href="{% url 'conversation' conversation.id %}" class="conversation-item {% if conversation.id == active_conversation.id %}active{% endif %} {% if conversation.has_unread %}unread{% endif %}">
+                    <div class="conversation-avatar" style="background-image: url('{{ conversation.other_profile.main_image.url }}')">
+                        {% if conversation.other_profile.is_online %}
+                            <div class="online-indicator"></div>
+                        {% endif %}
+                    </div>
+                    <div class="conversation-details">
+                        <div class="conversation-header">
+                            <h3>{{ conversation.other_profile.user.first_name }}</h3>
+                            <span class="conversation-time">{{ conversation.last_message.created_at|date:"g:i A" }}</span>
+                        </div>
+                        <div class="conversation-preview">
+                            <p>{{ conversation.last_message.content|truncatechars:30 }}</p>
+                            {% if conversation.unread_count > 0 %}
+                                <span class="unread-badge">{{ conversation.unread_count }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </a>
+            {% empty %}
+                <div class="no-conversations">
+                    <p>You don't have any messages yet.</p>
+                    <a href="{% url 'matches' %}" class="btn primary-btn">View Matches</a>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="conversation-view">
+        {% if active_conversation %}
+            <div class="conversation-header">
+                <div class="chat-profile-info">
+                    <div class="chat-avatar" style="background-image: url('{{ active_conversation.other_profile.main_image.url }}')"></div>
+                    <div class="chat-user-details">
+                        <h2>{{ active_conversation.other_profile.user.first_name }}</h2>
+                        <p>
+                            {% if active_conversation.other_profile.is_online %}
+                                <span class="online-status">Online</span>
+                            {% else %}
+                                <span class="last-active">Last active {{ active_conversation.other_profile.last_active|timesince }} ago</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                <div class="conversation-actions">
+                    <a href="{% url 'view_profile' active_conversation.other_profile.id %}" class="btn view-profile-btn">
+                        <i class="fas fa-user"></i> View Profile
+                    </a>
+                    <button class="btn unmatch-btn" data-profile-id="{{ active_conversation.other_profile.id }}">
+                        <i class="fas fa-times"></i> Unmatch
+                    </button>
+                </div>
+            </div>
+
+            <div class="messages-container" id="messagesContainer">
+                <div class="message-date-divider">
+                    <span>{{ active_conversation.created_at|date:"F j, Y" }}</span>
+                </div>
+                
+                <div class="match-notification">
+                    <div class="match-icon">
+                        <i class="fas fa-heart"></i>
+                    </div>
+                    <p>You matched with {{ active_conversation.other_profile.user.first_name }}</p>
+                </div>
+
+                {% for message in messages %}
+                    {% if message.is_date_divider %}
+                        <div class="message-date-divider">
+                            <span>{{ message.date|date:"F j, Y" }}</span>
+                        </div>
+                    {% else %}
+                        <div class="message {% if message.sender == user %}sent{% else %}received{% endif %}">
+                            <div class="message-content">
+                                <p>{{ message.content }}</p>
+                                <span class="message-time">{{ message.created_at|date:"g:i A" }}</span>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+
+            <div class="message-input">
+                <form id="messageForm" method="post" action="{% url 'send_message' active_conversation.id %}">
+                    {% csrf_token %}
+                    <input type="text" name="content" id="messageInput" placeholder="Type a message..." required>
+                    <button type="submit" id="sendButton">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </form>
+            </div>
+        {% else %}
+            <div class="no-conversation-selected">
+                <div class="placeholder-content">
+                    <i class="fas fa-comments"></i>
+                    <h2>Select a conversation to start messaging</h2>
+                    <p>Or go find some new matches!</p>
+                    <a href="{% url 'home' %}" class="btn primary-btn">Find Matches</a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Unmatch Confirmation Modal -->
+<div class="modal" id="unmatchModal">
+    <div class="modal-content">
+        <h2>Unmatch Confirmation</h2>
+        <p>Are you sure you want to unmatch with this person? This action cannot be undone and all messages will be deleted.</p>
+        <div class="modal-actions">
+            <button class="btn secondary-btn" id="cancelUnmatch">Cancel</button>
+            <button class="btn danger-btn" id="confirmUnmatch">Unmatch</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/chat.js' %}"></script>
+{% endblock %}

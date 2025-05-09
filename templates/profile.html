@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Profile | Tinder Clone{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/profile.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="profile-header">
+        <h1>My Profile</h1>
+        <a href="{% url 'edit_profile' %}" class="btn edit-btn">
+            <i class="fas fa-edit"></i> Edit Profile
+        </a>
+    </div>
+
+    <div class="profile-content">
+        <div class="profile-sidebar">
+            <div class="profile-photos">
+                <div class="main-photo">
+                    {% if profile.main_image %}
+                        <img src="{{ profile.main_image.url }}" alt="Profile photo">
+                    {% else %}
+                        <div class="placeholder-image">
+                            <i class="fas fa-user"></i>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="additional-photos">
+                    {% for photo in profile.additional_images.all %}
+                        <div class="photo-item">
+                            <img src="{{ photo.image.url }}" alt="Additional photo">
+                        </div>
+                    {% endfor %}
+                    {% if profile.additional_images.count < 5 %}
+                        <a href="{% url 'add_photo' %}" class="add-photo">
+                            <i class="fas fa-plus"></i>
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="profile-details">
+            <div class="profile-section">
+                <h2>{{ user.first_name }} {{ user.last_name }}, {{ profile.age }}</h2>
+                <p class="profile-location">
+                    <i class="fas fa-map-marker-alt"></i> {{ profile.location }}
+                </p>
+            </div>
+
+            <div class="profile-section">
+                <h3>About Me</h3>
+                <p>{{ profile.bio }}</p>
+            </div>
+
+            <div class="profile-section">
+                <h3>Interests</h3>
+                <div class="interests-tags">
+                    {% for interest in profile.interests.all %}
+                        <span class="interest-tag">{{ interest.name }}</span>
+                    {% empty %}
+                        <p>No interests added yet.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="profile-section">
+                <h3>Looking For</h3>
+                <p>{{ profile.get_looking_for_display }}</p>
+            </div>
+
+            <div class="profile-section">
+                <h3>Account Settings</h3>
+                <ul class="settings-list">
+                    <li>
+                        <a href="{% url 'change_password' %}">
+                            <i class="fas fa-key"></i> Change Password
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'privacy_settings' %}">
+                            <i class="fas fa-shield-alt"></i> Privacy Settings
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'notifications' %}">
+                            <i class="fas fa-bell"></i> Notification Preferences
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'delete_account' %}" class="danger">
+                            <i class="fas fa-trash"></i> Delete Account
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

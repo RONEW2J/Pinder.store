@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Matches | Tinder Clone{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/matches.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="page-title">My Matches</h1>
+    
+    {% if new_matches %}
+    <section class="new-matches">
+        <h2>New Matches</h2>
+        <div class="matches-grid">
+            {% for match in new_matches %}
+                <div class="match-card new">
+                    <div class="match-photo" style="background-image: url('{{ match.profile.main_image.url }}')">
+                        <div class="match-actions">
+                            <a href="{% url 'create_conversation' match.profile.id %}" class="btn message-btn">
+                                <i class="fas fa-comment"></i> Message
+                            </a>
+                        </div>
+                    </div>
+                    <div class="match-info">
+                        <h3>{{ match.profile.user.first_name }}, {{ match.profile.age }}</h3>
+                        <p class="match-time">Matched {{ match.created_at|timesince }} ago</p>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    <section class="all-matches">
+        <h2>All Matches</h2>
+        {% if all_matches %}
+            <div class="matches-grid">
+                {% for match in all_matches %}
+                    <div class="match-card">
+                        <div class="match-photo" style="background-image: url('{{ match.profile.main_image.url }}')">
+                            <div class="match-actions">
+                                <a href="{% url 'create_conversation' match.profile.id %}" class="btn message-btn">
+                                    <i class="fas fa-comment"></i> Message
+                                </a>
+                                <button class="btn unmatch-btn" data-profile-id="{{ match.profile.id }}">
+                                    <i class="fas fa-times"></i> Unmatch
+                                </button>
+                            </div>
+                        </div>
+                        <div class="match-info">
+                            <h3>{{ match.profile.user.first_name }}, {{ match.profile.age }}</h3>
+                            <p class="match-location">
+                                <i class="fas fa-map-marker-alt"></i> {{ match.profile.location }}
+                            </p>
+                            {% if match.conversation %}
+                                <a href="{% url 'conversation' match.conversation.id %}" class="view-conversation">
+                                    View Conversation
+                                    {% if match.conversation.unread_count > 0 %}
+                                        <span class="unread-badge">{{ match.conversation.unread_count }}</span>
+                                    {% endif %}
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="no-matches">
+                <p>You don't have any matches yet. Keep swiping to find someone!</p>
+                <a href="{% url 'home' %}" class="btn primary-btn">Find Matches</a>
+            </div>
+        {% endif %}
+    </section>
+</div>
+
+<!-- Unmatch Confirmation Modal -->
+<div class="modal" id="unmatchModal">
+    <div class="modal-content">
+        <h2>Unmatch Confirmation</h2>
+        <p>Are you sure you want to unmatch with this person? This action cannot be undone.</p>
+        <div class="modal-actions">
+            <button class="btn secondary-btn" id="cancelUnmatch">Cancel</button>
+            <button class="btn danger-btn" id="confirmUnmatch">Unmatch</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/matches.js' %}"></script>
+{% endblock %}

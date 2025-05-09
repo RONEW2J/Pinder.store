@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Find Your Match | Tinder Clone{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/home.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    {% if user.is_authenticated %}
+        <section class="swipe-section">
+            <div class="card-container">
+                {% if potential_matches %}
+                    <div class="card-stack">
+                        {% for profile in potential_matches %}
+                            <div class="profile-card" data-profile-id="{{ profile.id }}">
+                                <div class="profile-image" style="background-image: url('{{ profile.main_image.url }}')">
+                                    <div class="profile-info">
+                                        <h2>{{ profile.user.first_name }}, {{ profile.age }}</h2>
+                                        <p>{{ profile.bio|truncatechars:100 }}</p>
+                                    </div>
+                                </div>
+                                <div class="action-buttons">
+                                    <button class="dislike-btn" data-action="dislike" data-profile-id="{{ profile.id }}">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                    <button class="like-btn" data-action="like" data-profile-id="{{ profile.id }}">
+                                        <i class="fas fa-heart"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="no-matches">
+                        <h2>No more profiles to show</h2>
+                        <p>Check back later for new potential matches!</p>
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+    {% else %}
+        <section class="landing-section">
+            <div class="landing-content">
+                <h1>Meet new and interesting people nearby</h1>
+                <p>Swipe right to like someone, or swipe left to pass. If someone likes you back, it's a match!</p>
+                <div class="action-buttons">
+                    <a href="{% url 'register' %}" class="btn primary-btn">Sign Up</a>
+                    <a href="{% url 'login' %}" class="btn secondary-btn">Log In</a>
+                </div>
+            </div>
+            <div class="landing-image">
+                <img src="{% static 'images/landing.jpg' %}" alt="Couple matching on app">
+            </div>
+        </section>
+        
+        <section class="features-section">
+            <h2>How It Works</h2>
+            <div class="features-grid">
+                <div class="feature">
+                    <div class="feature-icon">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <h3>Create a Profile</h3>
+                    <p>Add your best photos and tell everyone about yourself</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">
+                        <i class="fas fa-heart"></i>
+                    </div>
+                    <h3>Find Matches</h3>
+                    <p>Swipe right on profiles you like, left on those you don't</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <h3>Start Chatting</h3>
+                    <p>When you match with someone, you can start a conversation</p>
+                </div>
+            </div>
+        </section>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/swipe.js' %}"></script>
+{% endblock %}

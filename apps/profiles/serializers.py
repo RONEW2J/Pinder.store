@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Profile, Interest # Removed Swipe from this import
+from .models import Profile, Interest, Photo # Removed Swipe from this import
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -8,14 +8,24 @@ class InterestSerializer(serializers.ModelSerializer):
     class Meta:
         model = Interest
         fields = ['id', 'name']
+        
+        class PhotoSerializer(serializers.ModelSerializer): # Added this
+            class Meta:
+                model = Photo
+                fields = ['id', 'image', 'caption', 'is_profile_picture', 'order']
+                # profile field will be handled by the view or context
 
 class ProfileSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField(read_only=True) # Display username
     interests = InterestSerializer(many=True, read_only=False, required=False) # Made 'required=False' for partial updates
+    photos = PhotoSerializer(many=True, read_only=True) # Add this line
 
     class Meta:
         model = Profile
-        fields = ['user', 'age', 'location', 'interests'] # Add other fields as needed
+        fields = [
+                    'user', 'age', 'location', 'interests',
+                    'photos' # Add photos here
+                ]
         # For location, you might need a custom serializer field if using GeoDjango REST framework extensions
 
     def update(self, instance, validated_data):

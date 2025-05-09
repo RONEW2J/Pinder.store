@@ -1,0 +1,282 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Edit Profile | Tinder Clone{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/edit_profile.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1>Edit Profile</h1>
+        <a href="{% url 'profile' %}" class="btn secondary-btn">
+            <i class="fas fa-arrow-left"></i> Back to Profile
+        </a>
+    </div>
+
+    <div class="edit-profile-container">
+        <form method="post" enctype="multipart/form-data" class="edit-profile-form">
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+                <div class="form-errors">
+                    {% for error in form.non_field_errors %}
+                        <p class="error">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
+            <div class="form-section">
+                <h2>Photos</h2>
+                <p class="section-description">Add up to 6 photos. The first photo will be your main profile picture.</p>
+                
+                <div class="photo-editor">
+                    <div class="main-photo-container">
+                        <h3>Main Photo</h3>
+                        <div class="main-photo-preview" id="mainPhotoPreview">
+                            {% if profile.main_image %}
+                                <img src="{{ profile.main_image.url }}" alt="Main profile photo">
+                            {% else %}
+                                <div class="placeholder-image">
+                                    <i class="fas fa-user"></i>
+                                    <p>Add a photo</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="photo-upload">
+                            <label for="{{ form.main_image.id_for_label }}" class="upload-btn">
+                                <i class="fas fa-upload"></i> Upload Photo
+                            </label>
+                            {{ form.main_image }}
+                            {% if form.main_image.errors %}
+                                <div class="field-errors">
+                                    {% for error in form.main_image.errors %}
+                                        <p class="error">{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="additional-photos-container">
+                        <h3>Additional Photos</h3>
+                        <div class="additional-photos-grid">
+                            {% for photo in profile.additional_images.all %}
+                                <div class="photo-item">
+                                    <img src="{{ photo.image.url }}" alt="Additional photo">
+                                    <div class="photo-actions">
+                                        <button type="button" class="btn delete-photo" data-photo-id="{{ photo.id }}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                            
+                            {% if profile.additional_images.count < 5 %}
+                                <div class="photo-item add-photo">
+                                    <div class="placeholder-image">
+                                        <i class="fas fa-plus"></i>
+                                        <p>Add photo</p>
+                                    </div>
+                                    <input type="file" name="additional_images" class="additional-image-input" accept="image/*">
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h2>Basic Information</h2>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="{{ form.first_name.id_for_label }}">First Name</label>
+                        {{ form.first_name }}
+                        {% if form.first_name.errors %}
+                            <div class="field-errors">
+                                {% for error in form.first_name.errors %}
+                                    <p class="error">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="{{ form.last_name.id_for_label }}">Last Name</label>
+                        {{ form.last_name }}
+                        {% if form.last_name.errors %}
+                            <div class="field-errors">
+                                {% for error in form.last_name.errors %}
+                                    <p class="error">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="{{ form.birth_date.id_for_label }}">Birth Date</label>
+                        {{ form.birth_date }}
+                        {% if form.birth_date.errors %}
+                            <div class="field-errors">
+                                {% for error in form.birth_date.errors %}
+                                    <p class="error">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="{{ form.gender.id_for_label }}">Gender</label>
+                        {{ form.gender }}
+                        {% if form.gender.errors %}
+                            <div class="field-errors">
+                                {% for error in form.gender.errors %}
+                                    <p class="error">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="{{ form.location.id_for_label }}">Location</label>
+                    {{ form.location }}
+                    {% if form.location.errors %}
+                        <div class="field-errors">
+                            {% for error in form.location.errors %}
+                                <p class="error">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h2>About Me</h2>
+                
+                <div class="form-group">
+                    <label for="{{ form.bio.id_for_label }}">Bio</label>
+                    {{ form.bio }}
+                    <div class="character-counter">
+                        <span id="bioCharCount">0</span>/500
+                    </div>
+                    {% if form.bio.errors %}
+                        <div class="field-errors">
+                            {% for error in form.bio.errors %}
+                                <p class="error">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    <label>Interests</label>
+                    <div class="interests-selector">
+                        {{ form.interests }}
+                        {% if form.interests.errors %}
+                            <div class="field-errors">
+                                {% for error in form.interests.errors %}
+                                    <p class="error">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h2>Preferences</h2>
+                
+                <div class="form-group">
+                    <label for="{{ form.interested_in.id_for_label }}">Interested In</label>
+                    {{ form.interested_in }}
+                    {% if form.interested_in.errors %}
+                        <div class="field-errors">
+                            {% for error in form.interested_in.errors %}
+                                <p class="error">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    <label for="{{ form.looking_for.id_for_label }}">Looking For</label>
+                    {{ form.looking_for }}
+                    {% if form.looking_for.errors %}
+                        <div class="field-errors">
+                            {% for error in form.looking_for.errors %}
+                                <p class="error">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="{{ form.min_age_preference.id_for_label }}">Age Range Min</label>
+                        {{ form.min_age_preference }}
+                        {% if form.min_age_preference.errors %}
+                            <div class="field-errors">
+                                {% for error in form.min_age_preference.errors %}
+                                    <p class="error">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="{{ form.max_age_preference.id_for_label }}">Age Range Max</label>
+                        {{ form.max_age_preference }}
+                        {% if form.max_age_preference.errors %}
+                            <div class="field-errors">
+                                {% for error in form.max_age_preference.errors %}
+                                    <p class="error">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="{{ form.max_distance.id_for_label }}">Maximum Distance (km)</label>
+                    {{ form.max_distance }}
+                    <div id="distanceValue" class="range-value"></div>
+                    {% if form.max_distance.errors %}
+                        <div class="field-errors">
+                            {% for error in form.max_distance.errors %}
+                                <p class="error">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn primary-btn">Save Changes</button>
+                <a href="{% url 'profile' %}" class="btn secondary-btn">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Photo Confirmation Modal -->
+<div class="modal" id="deletePhotoModal">
+    <div class="modal-content">
+        <h2>Delete Photo</h2>
+        <p>Are you sure you want to delete this photo? This action cannot be undone.</p>
+        <div class="modal-actions">
+            <button class="btn secondary-btn" id="cancelDeletePhoto">Cancel</button>
+            <button class="btn danger-btn" id="confirmDeletePhoto">Delete</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/edit_profile.js' %}"></script>
+{% endblock %}
