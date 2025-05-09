@@ -1,5 +1,7 @@
 from django.shortcuts import render
-from rest_framework import generics, permissions
+from rest_framework import generics, permissions, filters
+from django_filters.rest_framework import DjangoFilterBackend # Import DjangoFilterBackend
+
 from .models import Profile, Interest
 from .serializers import ProfileSerializer, InterestSerializer
 
@@ -28,7 +30,15 @@ class InterestListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly] # Allow anyone to see, only auth to create
 
 class ProfileListView(generics.ListAPIView):
-    queryset = Profile.objects.exclude(user=request.user)
     serializer_class = ProfileSerializer
-    filter_backends = [DjangoFilterBackend]
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['gender', 'interests']
+    search_fields = ['user__username', 'bio']
+    
+    def get_queryset(self):
+        return Profile.objects.exclude(user=self.request.user)
+
+    # If you had this line before, it was correct to keep it in get_queryset
+    # def get_queryset(self):
+    #     return Profile.objects.exclude(user=self.request.user).prefetch_related('interests', 'photos')
