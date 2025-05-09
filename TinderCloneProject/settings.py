@@ -65,8 +65,9 @@ INSTALLED_APPS = [
     'apps.accounts.apps.AccountsConfig',
     'apps.profiles.apps.ProfilesConfig',
     'apps.matches.apps.MatchesConfig',
-    'apps.notifications.apps.NotificationsConfig', # Assuming you have this from signals.py
-]
+    'apps.notifications.apps.NotificationsConfig',
+    'apps.actions.apps.ActionsConfig',
+    ]
 
 
 MIDDLEWARE = [

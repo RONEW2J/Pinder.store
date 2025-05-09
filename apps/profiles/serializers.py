@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Profile, Interest, Swipe
+from .models import Profile, Interest # Removed Swipe from this import
 from django.contrib.auth import get_user_model
 
 User = get_user_model()

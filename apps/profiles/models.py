@@ -1,6 +1,12 @@
 from django.db import models
 from django.conf import settings # Use settings.AUTH_USER_MODEL
-from django.contrib.gis.db import models # Import PointField from GeoDjango
+from django.contrib.gis.db import models as gis_models # Import PointField from GeoDjango, aliased to avoid conflict
+
+# Helper function for upload_to path
+def user_directory_path(instance, filename):
+    # file will be uploaded to MEDIA_ROOT/user_<id>/<filename>
+    # or MEDIA_ROOT/profile_<id>/<filename>
+    return f'profile_photos/profile_{instance.profile.id}/{filename}'
 # Alternatively, you can use:
 # from django.contrib.auth import get_user_model
 # User = get_user_model()
@@ -12,7 +18,7 @@ class Profile(models.Model):
         related_name='profile'
     )  # Расширение данных пользователя
     age = models.PositiveIntegerField(null=True, blank=True) # Consider if age can be optional initially
-    location = models.PointField(geography=True, null=True, blank=True)  # GeoDjango - ensure PostGIS setup if using this
+    location = gis_models.PointField(geography=True, null=True, blank=True)  # GeoDjango - ensure PostGIS setup if using this
     interests = models.ManyToManyField('Interest', blank=True)
 
 class Interest(models.Model): # You'll need to define the Interest model
@@ -21,8 +27,13 @@ class Interest(models.Model): # You'll need to define the Interest model
     def __str__(self):
         return self.name
 
-class Swipe(models.Model):
-    swiper = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='swipes_made', on_delete=models.CASCADE)  # Кто свайпнул
-    swiped_user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='swipes_received', on_delete=models.CASCADE)  # Кого свайпнули
-    action = models.CharField(max_length=4, choices=[('LIKE', 'Like'), ('PASS', 'Pass')]) # max_length should fit 'LIKE' or 'PASS'
-    timestamp = models.DateTimeField(auto_now_add=True)
+class Photo(models.Model):
+    profile = models.ForeignKey(Profile, related_name='photos', on_delete=models.CASCADE)
+    image = models.ImageField(upload_to=user_directory_path)
+    caption = models.CharField(max_length=255, blank=True, null=True)
+    is_profile_picture = models.BooleanField(default=False) # Optional: to mark one as the main display picture
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    order = models.PositiveIntegerField(default=0) # Optional: for ordering photos
+
+    class Meta:
+        ordering = ['order', 'uploaded_at'] # Default ordering
