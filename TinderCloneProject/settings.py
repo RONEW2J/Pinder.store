@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     # Third party apps
     'rest_framework',
     'rest_framework_simplejwt',
+    'django_filters', # For filtering
     'drf_yasg', # For Swagger/OpenAPI
     'silk', # For profiling
     'corsheaders', # For CORS
