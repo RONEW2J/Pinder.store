@@ -8,12 +8,20 @@ class InterestSerializer(serializers.ModelSerializer):
     class Meta:
         model = Interest
         fields = ['id', 'name']
-        
-        class PhotoSerializer(serializers.ModelSerializer): # Added this
-            class Meta:
-                model = Photo
-                fields = ['id', 'image', 'caption', 'is_profile_picture', 'order']
-                # profile field will be handled by the view or context
+
+class PhotoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Photo
+        fields = ['id', 'image', 'caption', 'is_profile_picture', 'order', 'profile', 'uploaded_at']
+        read_only_fields = ['profile', 'uploaded_at'] # Profile set based on authenticated user for create operations
+
+    def validate_is_profile_picture(self, value):
+        if value and self.context.get('request'): # If trying to set this photo as the profile picture
+            profile = self.context['request'].user.profile
+            # Check if another photo (excluding the current one if it's an update) is already the profile picture
+            if Photo.objects.filter(profile=profile, is_profile_picture=True).exclude(pk=getattr(self.instance, 'pk', None)).exists():
+                raise serializers.ValidationError("Another photo is already set as the profile picture. Please unset it first or update that photo.")
+        return value
 
 class ProfileSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField(read_only=True) # Display username
