@@ -11,25 +11,38 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
+import environ # Import django-environ
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Initialize django-environ
+env = environ.Env(
+    # set casting, default value
+    DEBUG=(bool, False),
+    ALLOWED_HOSTS=(list, []),
+    CSRF_TRUSTED_ORIGINS=(list, []),
+)
+
+# Reading .env file if it exists (for local development)
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-e(!__$vk!0!xs=ysiyg=k1p5c*l(t!6t&wyf_mv6797&7&g_if'
+SECRET_KEY = env('SECRET_KEY', default='your-default-secret-key-for-dev-only-change-me')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env('DEBUG')
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = env('ALLOWED_HOSTS')
+CSRF_TRUSTED_ORIGINS = env('CSRF_TRUSTED_ORIGINS') # For HTTPS
 
 
 # Application definition
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -38,19 +51,31 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.gis',
+    
+    # Third party apps
     'rest_framework',
+    'rest_framework_simplejwt',
+    'drf_yasg', # For Swagger/OpenAPI
+    'silk', # For profiling
+    'corsheaders', # For CORS
+    'storages', # For S3/MinIO
+
+    # Local apps
     'apps.accounts.apps.AccountsConfig',
     'apps.profiles.apps.ProfilesConfig',
+    'apps.matches.apps.MatchesConfig',
+    # 'apps.notifications.apps.NotificationsConfig', # Assuming you have this from signals.py
 ]
 
-AUTH_USER_MODEL = 'accounts.User'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware', # CORS middleware - place high, but after SecurityMiddleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'silk.middleware.SilkyMiddleware', # Silk middleware
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -75,21 +100,21 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'TinderCloneProject.wsgi.application'
+ASGI_APPLICATION = 'TinderCloneProject.asgi.application' # For Django Channels
 
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.contrib.gis.db.backends.postgis', # Use PostGIS backend
-        'NAME': 'PinderDB',        # Your database name
-        'USER': 'postgres',    # Your PostgreSQL username
-        'PASSWORD': 'db_pass25', # Your PostgreSQL password
-        'HOST': 'localhost',       # Or your DB host, e.g., 127.0.0.1 or a Docker service name
-        'PORT': '5432',            # Default PostgreSQL port
-    }
+    'default': env.db_url(
+        'DATABASE_URL',
+        default=f"postgis://postgres:db_pass25@localhost:5432/PinderDB"
+    )
 }
+# Ensure PostGIS backend is used if DATABASE_URL doesn't specify it
+if DATABASES['default']['ENGINE'] != 'django.contrib.gis.db.backends.postgis':
+    DATABASES['default']['ENGINE'] = 'django.contrib.gis.db.backends.postgis'
 
 
 # Password validation
@@ -127,24 +152,130 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles' # For collectstatic in production
+STATICFILES_DIRS = [
+    BASE_DIR / "static", # For project-level static files during development
+]
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'mediafiles' # For user-uploaded files during local development
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Django REST Framework Settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
+        # 'rest_framework.authentication.SessionAuthentication', # If you also use Django admin/templates
     ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+    ],
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle'
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': env('DRF_THROTTLE_RATE_ANON', default='100/day'),
+        'user': env('DRF_THROTTLE_RATE_USER', default='1000/day')
+    },
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': env('DRF_PAGE_SIZE', cast=int, default=10),
 }
 
-from datetime import timedelta
-
+# Simple JWT Settings
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=env('JWT_ACCESS_TOKEN_LIFETIME_MINUTES', cast=int, default=60)), # e.g., 1 hour
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=env('JWT_REFRESH_TOKEN_LIFETIME_DAYS', cast=int, default=7)),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN': True,
+
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY, # Uses the main SECRET_KEY
+    'VERIFYING_KEY': None,
+    'AUDIENCE': None,
+    'ISSUER': None,
+    'JWK_URL': None,
+    'LEEWAY': 0,
+
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+    'USER_AUTHENTICATION_RULE': 'rest_framework_simplejwt.authentication.default_user_authentication_rule',
+
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    'TOKEN_TYPE_CLAIM': 'token_type',
+    'TOKEN_USER_CLASS': 'rest_framework_simplejwt.models.TokenUser',
+
+    'JTI_CLAIM': 'jti',
+
+    'SLIDING_TOKEN_REFRESH_EXP_CLAIM': 'refresh_exp',
+    'SLIDING_TOKEN_LIFETIME': timedelta(minutes=env('JWT_SLIDING_TOKEN_LIFETIME_MINUTES', cast=int, default=5)),
+    'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=env('JWT_SLIDING_TOKEN_REFRESH_LIFETIME_DAYS', cast=int, default=1)),
 }
 
+# GDAL/GEOS paths (Consider managing these via Docker environment if possible)
 GDAL_LIBRARY_PATH = r'C:\OSGeo4W\bin\gdal310.dll'  # Path to your GDAL library
 GEOS_LIBRARY_PATH = r'C:\OSGeo4W\bin\geos_c.dll'   # Path to your GEOS library
+
+AUTH_USER_MODEL = 'accounts.User'
+
+# Cache (Redis)
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": env('REDIS_URL', default="redis://127.0.0.1:6379/1"), # /1 for cache
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+}
+
+# Celery Configuration (using Redis as broker and backend)
+CELERY_BROKER_URL = env('CELERY_BROKER_URL', default=env('REDIS_URL', default="redis://127.0.0.1:6379/0")) # /0 for Celery
+CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND', default=env('REDIS_URL', default="redis://127.0.0.1:6379/0"))
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE # Use Django's timezone
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler' # If you use scheduled tasks
+
+# Django Channels
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [env('REDIS_URL', default="redis://127.0.0.1:6379/2")], # /2 for Channels
+        },
+    },
+}
+
+# CORS Settings
+CORS_ALLOW_ALL_ORIGINS = DEBUG # For development, allow all. Restrict in production.
+CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[]) # e.g., ['http://localhost:3000', 'https://yourfrontend.com']
+# CORS_ALLOW_CREDENTIALS = True # If you need to send cookies/auth headers
+
+# Silk Profiler Settings (optional, can be more specific)
+SILKY_AUTHENTICATION = True  # Set to True if login is required to view Silk UI
+SILKY_AUTHORISATION = True  # Set to True if user needs to be staff to view Silk UI
+# SILKY_PERMISSIONS = lambda user: user.is_staff # Example permission
+
+# Cloud Storage (MinIO/S3) - Configure one of these if not using local media
+if env('USE_S3', cast=bool, default=False):
+    AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY')
+    AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME')
+    AWS_S3_REGION_NAME = env('AWS_S3_REGION_NAME', default=None)
+    AWS_S3_ENDPOINT_URL = env('AWS_S3_ENDPOINT_URL', default=None) # For MinIO or other S3-compatible services
+    AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com' if not AWS_S3_ENDPOINT_URL else None
+    AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
+    AWS_DEFAULT_ACL = None # Or 'public-read' if your media files should be public
+    AWS_LOCATION = 'media' # Optional: subdirectory in your bucket for media files
+    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    # STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage' # If you want to serve static files from S3 too
+    MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{AWS_LOCATION}/' if AWS_S3_CUSTOM_DOMAIN else f'{AWS_S3_ENDPOINT_URL}/{AWS_STORAGE_BUCKET_NAME}/{AWS_LOCATION}/'

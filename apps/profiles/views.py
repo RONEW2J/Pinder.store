@@ -26,3 +26,9 @@ class InterestListCreateView(generics.ListCreateAPIView):
     queryset = Interest.objects.all()
     serializer_class = InterestSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly] # Allow anyone to see, only auth to create
+
+class ProfileListView(generics.ListAPIView):
+    queryset = Profile.objects.exclude(user=request.user)
+    serializer_class = ProfileSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['gender', 'interests']
