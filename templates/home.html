@@ -20,7 +20,7 @@
         {% else %}
             <div class="hero-actions">
                 <a href="{% url 'profiles:profile-display' %}" class="btn btn-primary">View Your Profile</a>
-                <a href="{% url 'matches_ui:matches' %}" class="btn btn-secondary">See Your Matches</a>
+                <a href="{% url 'matches:matches-list-discover' %}" class="btn btn-secondary">See Your Matches</a>
             </div>
         {% endif %}
     </section>

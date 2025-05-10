@@ -10,12 +10,14 @@ from apps.matches.models import Match # For filtering based on matches
 from .serializers import ProfileSerializer, InterestSerializer, PhotoSerializer # Added PhotoSerializer
 from .forms import ProfileEditForm, PhotoUploadForm
 
-from django.contrib.gis.geos import Point
-from django.contrib.gis.measure import D # Distance object
-from django.contrib.gis.db.models.functions import Distance as DistanceFunc
-
+# GeoDjango imports are no longer needed for profile editing if using city
+# from django.contrib.gis.geos import Point
+# from django.contrib.gis.measure import D # Distance object
+# from django.contrib.gis.db.models.functions import Distance as DistanceFunc
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse, HttpResponseForbidden, HttpResponseNotFound
+from django.views.decorators.http import require_POST
 
 # Create your views here.
 
@@ -68,38 +70,40 @@ class ProfileListView(generics.ListAPIView):
         all_matched_user_ids = set(list(matches_as_user1) + list(matches_as_user2))
         queryset = queryset.exclude(user_id__in=all_matched_user_ids)
 
-        # 3. Potentially, filter by proximity (GeoDjango)
-        # This requires the current user to have a location set in their profile.
-        try:
-            user_profile = user.profile
-            if user_profile.location:
-                user_location = user_profile.location # This is a Point object
-                
-                # Get search radius from query params, e.g., ?radius_km=50
-                # Default to a reasonable value if not provided.
-                search_radius_km_str = self.request.query_params.get('radius_km', '50')
-                try:
-                    search_radius_km = float(search_radius_km_str)
-                except ValueError:
-                    search_radius_km = 50 # Default if invalid param
+        # 3. Filter by city and interests (if provided in query params)
+        # This replaces the GeoDjango proximity filter
+        city_id = self.request.query_params.get('city')
+        if city_id:
+            queryset = queryset.filter(city_id=city_id)
 
-                # Annotate with distance and filter
-                # Note: For dwithin to work efficiently, your location field should have a spatial index.
-                queryset = queryset.annotate(
-                    distance=DistanceFunc('location', user_location)
-                ).filter(
-                    location__isnull=False, # Only consider profiles with a location
-                    distance__lte=D(km=search_radius_km)
-                )
-                # If ordering by distance is desired by default when radius is applied:
-                # queryset = queryset.order_by('distance') 
-                # However, DRF's OrderingFilter will handle ?ordering=distance if 'distance' is in ordering_fields
-        except Profile.DoesNotExist:
-            # User has no profile, so location-based filtering cannot be applied from their perspective.
-            # Depending on desired behavior, you might return an empty queryset or just skip this filter.
-            pass # Skipping distance filter if user has no profile or location
-        except AttributeError: # If user.profile.location is None
-            pass
+        interest_ids = self.request.query_params.getlist('interests') # getlist for multiple values
+        if interest_ids:
+            # Filter profiles that have at least one of the specified interests.
+            # If you need profiles that have ALL specified interests, you'd loop and chain filters.
+            queryset = queryset.filter(interests__id__in=interest_ids).distinct()
+
+        # The old GeoDjango proximity filter is removed.
+        # If you still need radius-based filtering with cities, you'd need a more complex setup:
+        # 1. Store lat/lon on your City model.
+        # 2. Get the user's city's lat/lon.
+        # 3. Find cities within the radius of the user's city's lat/lon.
+        # 4. Filter profiles by those cities.
+        # This is significantly different from the previous PointField-based distance.
+        # For now, we assume filtering is by selected city and interests directly.
+
+        # Example of old GeoDjango proximity filter (REMOVED):
+        # try:
+        #     user_profile = user.profile
+        #     if user_profile.location: # This was the PointField
+        #         user_location = user_profile.location 
+                
+        #         search_radius_km_str = self.request.query_params.get('radius_km', '50')
+        #         # ... (rest of radius logic) ...
+        #         queryset = queryset.annotate(distance=DistanceFunc('location', user_location)) # ...
+        # except Profile.DoesNotExist:
+        #     pass 
+        # except AttributeError: 
+        #     pass
 
         return queryset
 
@@ -150,42 +154,25 @@ def profile_edit_view(request):
         form = ProfileEditForm(request.POST, request.FILES, instance=profile)
         print(f"Form submitted. POST data: {request.POST}")
         if form.is_valid():
-            print(f"Form is valid. Cleaned data: {form.cleaned_data}") # Logged data shows location: None here
-            updated_profile = form.save(commit=False)
-            print(f"Bio from form before location: {updated_profile.bio}")
+            print(f"Form is valid. Cleaned data: {form.cleaned_data}")
+            
+            # The form now handles the 'city' field directly.
+            # No need for manual latitude/longitude or Point object creation here.
+            updated_profile = form.save() # commit=True is default, this will save the instance and M2M data if form is configured correctly.
+                                          # If you had commit=False, you'd need form.save_m2m() later.
 
-            # Handle location:
-            # The form's 'location' field (PointField) might have set updated_profile.location.
-            # If request.POST['location'] was empty (as in logs), cleaned_data['location'] is None,
-            # so updated_profile.location is None at this point.
-            # We now check for separate latitude/longitude POST parameters and prioritize them.
-
-            latitude_str = request.POST.get('latitude')
-            longitude_str = request.POST.get('longitude')
-
-            if latitude_str and longitude_str:
-                try:
-                    # Django Point constructor: x, y, z, srid
-                    # x is longitude, y is latitude
-                    lon_val = float(longitude_str)
-                    lat_val = float(latitude_str)
-                    updated_profile.location = Point(lon_val, lat_val, srid=4326)
-                except ValueError:
-                    messages.error(request, "Invalid format for latitude or longitude. Location was not updated from these inputs.")
-                    # If an error occurs, updated_profile.location will retain the value
-                    # set by form.save(commit=False) (likely None if 'location' form field was empty).
-            # If latitude_str or longitude_str are not present, updated_profile.location
-            # as set by form.save(commit=False) is used.
-
-            updated_profile.save()
-            form.save_m2m() # Important for M2M fields like interests
+            # If ProfileEditForm is a ModelForm and 'interests' is a ManyToManyField,
+            # and it's included in form.Meta.fields, form.save() handles it.
+            # If you used commit=False above, you would need:
+            # updated_profile.save() # first save the instance
+            # form.save_m2m()      # then save M2M data
             
             # Critical Debugging Step: Re-fetch from DB and check bio
             fresh_profile_check = Profile.objects.get(pk=updated_profile.pk)
             print(f"Bio from DB immediately after save: {fresh_profile_check.bio}")
             
             # Debug print to verify save
-            print(f"Updated profile bio: {updated_profile.bio}, location: {updated_profile.location}")
+            print(f"Updated profile bio: {updated_profile.bio}, city: {updated_profile.city}")
             
             messages.success(request, 'Your profile has been updated successfully!')
             return redirect('profiles:profile-display')
@@ -203,12 +190,52 @@ def photo_upload_view(request):
         if form.is_valid():
             photo = form.save(commit=False)
             photo.profile = profile
+
+            # If this photo is marked as the avatar, unmark any other avatars for this profile
+            if photo.is_profile_avatar: # This is True if the checkbox was checked
+                Photo.objects.filter(profile=profile, is_profile_avatar=True).update(is_profile_avatar=False)
             photo.save()
-            # Handle 'is_profile_picture' logic if added to form:
-            # If photo.is_profile_picture is True, ensure other photos for this profile are not.
-            # Photo.objects.filter(profile=profile).exclude(pk=photo.pk).update(is_profile_picture=False)
             messages.success(request, 'Photo uploaded successfully!')
             return redirect('profiles:profile-display') # Redirect to view profile
     else:
         form = PhotoUploadForm()
     return render(request, 'profiles/photo_upload_form.html', {'form': form})
+
+@login_required
+@require_POST # Ensure this view only accepts POST requests for deletion
+def photo_delete_view(request, photo_id):
+    try:
+        photo = get_object_or_404(Photo, pk=photo_id)
+    except Photo.DoesNotExist:
+         # This case is actually handled by get_object_or_404, but good for clarity
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest': # AJAX
+            return JsonResponse({'status': 'error', 'message': 'Photo not found.'}, status=404)
+        messages.error(request, 'Photo not found.')
+        return redirect('profiles:profile-display') # Or wherever appropriate
+
+    # Security check: Ensure the logged-in user owns the profile to which this photo belongs
+    if photo.profile.user != request.user:
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest': # AJAX
+            return JsonResponse({'status': 'error', 'message': 'You do not have permission to delete this photo.'}, status=403)
+        messages.error(request, 'You do not have permission to delete this photo.')
+        return redirect('profiles:profile-display') # Or wherever appropriate
+
+    # If this was the avatar, and you want to clear the avatar status, you could do it here.
+    # However, the `main_image` property will now handle finding a new avatar or returning None.
+    # If you wanted to explicitly pick a new avatar, that's more complex UI.
+    
+    photo_was_avatar = photo.is_profile_avatar
+    photo.delete()
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest': # AJAX
+        response_data = {'status': 'success', 'message': 'Photo deleted successfully.'}
+        if photo_was_avatar:
+            # Optionally, tell the client the avatar might have changed so it can refresh the main image
+            response_data['avatar_changed'] = True 
+            # You might also want to send back the URL of the new main_image if one is auto-selected by the property
+            new_main_image = request.user.profile.main_image
+            response_data['new_avatar_url'] = new_main_image.url if new_main_image else None
+        return JsonResponse(response_data)
+    
+    messages.success(request, 'Photo deleted successfully!')
+    return redirect('profiles:profile-display')

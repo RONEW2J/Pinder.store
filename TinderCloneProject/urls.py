@@ -47,7 +47,8 @@ urlpatterns = [
     path('auth/', include('apps.accounts.urls', namespace='accounts')),
     path('accounts/', include('allauth.urls')), 
     path('social-auth/', include('social_django.urls', namespace='social')), # For python-social-auth
-    path('profiles/', include('apps.profiles.urls', namespace='profiles')), # For your custom profile UI and API
+    path('profiles/', include('apps.profiles.urls', namespace='profiles_app')), 
+    path('api/v1/profiles/', include('apps.profiles.urls_api', namespace='profiles_api')),
     path('api/matches/', include('apps.matches.urls', namespace='matches_ui')),
     path('terms/', terms_view, name='terms'),
     path('privacy/', privacy_view, name='privacy'),

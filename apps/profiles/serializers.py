@@ -1,8 +1,14 @@
 from rest_framework import serializers
-from .models import Profile, Interest, Photo # Removed Swipe from this import
+from .models import Profile, Interest, Photo, City # Removed Swipe from this import
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
+
+class CitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = City
+        fields = ['id', 'name'] # Or other fields you want to expose
+
 
 class InterestSerializer(serializers.ModelSerializer):
     class Meta:
@@ -24,76 +30,55 @@ class PhotoSerializer(serializers.ModelSerializer):
         return value
 
 class ProfileSerializer(serializers.ModelSerializer):
-    user = serializers.StringRelatedField(read_only=True) # Display username
-    interests = InterestSerializer(many=True, read_only=False, required=False) # Made 'required=False' for partial updates
-    photos = PhotoSerializer(many=True, read_only=True) # Add this line
+    # User specific fields for read-only representation
+    user_id = serializers.IntegerField(source='user.id', read_only=True)
+    username = serializers.CharField(source='user.username', read_only=True)
+    email = serializers.EmailField(source='user.email', read_only=True) # Assuming you want to expose user's email
+
+    interests = InterestSerializer(many=True, read_only=True) # For displaying interests
+    # For updating interests, client should send a list of interest IDs
+    interest_ids = serializers.PrimaryKeyRelatedField(
+        queryset=Interest.objects.all(),
+        source='interests',  # This tells DRF to use this field to update the 'interests' M2M relationship
+        many=True,
+        write_only=True,
+        required=False
+    )
+
+    bio = serializers.CharField(required=False, allow_blank=True)
+    city = CitySerializer(read_only=True) # For displaying city details
+    # For updating city, client should send the city ID
+    city_id = serializers.PrimaryKeyRelatedField(
+        queryset=City.objects.all(),
+        source='city', # This tells DRF to use this field to update the 'city' ForeignKey relationship
+        write_only=True,
+        allow_null=True, # Allow unsetting the city
+        required=False
+    )
+
+    photos = PhotoSerializer(many=True, read_only=True)
     distance = serializers.FloatField(read_only=True, required=False) # To show distance when annotated
 
     class Meta:
         model = Profile
         fields = [
-                    'user', 'age', 'location', 'interests',
-                    'photos', 'bio', 'distance' # Add photos here
-                ]
-        read_only_fields = ['user']
-        # For location, you might need a custom serializer field if using GeoDjango REST framework extensions
-
-    def get_location(self, obj):
-        # If you want to return a more user-friendly format for the location
-        if obj.location:
-            return {
-                'latitude': obj.location.y,
-                'longitude': obj.location.x
-            }
-        return None
+            'id', 'user_id', 'username', 'email', # User related info
+            'age', 'bio', 'gender', 'phone_number', # Profile specific fields
+            'city', 'city_id', # City relationship (read/write)
+            'interests', 'interest_ids', # Interests relationship (read/write)
+            'photos', # Associated photos
+            'distance' # For potential future use or if annotated
+        ]
 
     def update(self, instance, validated_data):
-        interests_data = validated_data.pop('interests', None)
-        
-        # Update other Profile fields using the parent's update method
+        # Interests and City are handled by DRF due to 'source' in PrimaryKeyRelatedField
+        # for 'interest_ids' and 'city_id'.
+        # No need to pop 'interests' or 'city' manually if using this pattern.
+
+        # The 'interests' M2M field will be automatically handled by DRF if 'interest_ids' is in validated_data
+        # The 'city' ForeignKey field will be automatically handled by DRF if 'city_id' is in validated_data
+
         instance = super().update(instance, validated_data)
-
-        if interests_data is not None:
-            # interests_data is a list of dicts, e.g., 
-            # [{'id': 1, 'name': 'Music'}, {'name': 'Sports'}]
-            # We need to convert this to a list of Interest instances for .set()
-            
-            current_interest_instances = []
-            for interest_dict in interests_data:
-                interest_id = interest_dict.get('id')
-                # 'name' is unique in your Interest model
-                interest_name = interest_dict.get('name') 
-
-                if interest_id:
-                    # If ID is provided, try to fetch the existing interest.
-                    try:
-                        interest_obj = Interest.objects.get(pk=interest_id)
-                        # Optional: If name is also provided and differs, you might want to update it.
-                        # This depends on whether profile updates should modify global Interest records.
-                        # For now, we'll assume if ID is given, it's just for association.
-                        # If you wanted to update the interest name:
-                        # if interest_name and interest_obj.name != interest_name:
-                        #     interest_obj.name = interest_name
-                        #     interest_obj.save()
-                        current_interest_instances.append(interest_obj)
-                    except Interest.DoesNotExist:
-                        # Handle cases where an invalid ID might be passed.
-                        # You could raise a ValidationError or simply skip.
-                        # For example:
-                        # raise serializers.ValidationError(
-                        #     {f"interests": f"Interest with id {interest_id} not found."}
-                        # )
-                        pass # Skipping for now
-                elif interest_name:
-                    # If only name is provided, get or create the interest.
-                    # This leverages the 'unique=True' on Interest.name.
-                    interest_obj, created = Interest.objects.get_or_create(name=interest_name)
-                    current_interest_instances.append(interest_obj)
-                # Else: The interest_dict might be malformed (e.g., empty or missing both id and name).
-                # You might want to add error handling or logging here.
-
-            instance.interests.set(current_interest_instances)
-        
         return instance
 
 # You'll create SwipeSerializer later when building swipe functionality

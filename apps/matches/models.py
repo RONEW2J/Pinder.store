@@ -8,6 +8,7 @@ class Match(models.Model):
     # user1 is conventionally the user with the lower ID to ensure uniqueness of the pair
     user1 = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='matches_as_user1')
     user2 = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='matches_as_user2')
+    conversation = models.OneToOneField('Conversation', on_delete=models.SET_NULL, null=True, blank=True, related_name='match_initiator') # Or ForeignKey  
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

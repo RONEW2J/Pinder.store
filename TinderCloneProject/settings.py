@@ -50,7 +50,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django.contrib.gis',
     
     # Django Allauth - must come before django.contrib.admin if overriding admin templates
     'allauth',
@@ -125,13 +124,11 @@ ASGI_APPLICATION = 'TinderCloneProject.asgi.application' # For Django Channels
 DATABASES = {
     'default': env.db_url(
         'DATABASE_URL',
-        default=f"postgis://postgres:db_pass25@localhost:5432/PinderDB"
+        default=f"postgres://postgres:db_pass25@localhost:5432/PinderDB" # Revert to standard PostgreSQL
     )
 }
-# Ensure PostGIS backend is used if DATABASE_URL doesn't specify it
-if DATABASES['default']['ENGINE'] != 'django.contrib.gis.db.backends.postgis':
-    DATABASES['default']['ENGINE'] = 'django.contrib.gis.db.backends.postgis'
-
+# Ensure standard PostgreSQL backend is used.
+DATABASES['default']['ENGINE'] = 'django.db.backends.postgresql'
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -235,9 +232,9 @@ SIMPLE_JWT = {
     'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=env('JWT_SLIDING_TOKEN_REFRESH_LIFETIME_DAYS', cast=int, default=1)),
 }
 
-# GDAL/GEOS paths (Consider managing these via Docker environment if possible)
-GDAL_LIBRARY_PATH = r'C:\OSGeo4W\bin\gdal310.dll'  # Path to your GDAL library
-GEOS_LIBRARY_PATH = r'C:\OSGeo4W\bin\geos_c.dll'   # Path to your GEOS library
+# GDAL/GEOS and OSGeo4W specific configurations are no longer needed and have been removed.
+# - GDAL_LIBRARY_PATH and GEOS_LIBRARY_PATH are removed.
+# - Any OSGeo4W environment setup blocks (for PATH, GDAL_DATA, PROJ_LIB, os.add_dll_directory) are removed.
 
 AUTH_USER_MODEL = 'accounts.User'
 

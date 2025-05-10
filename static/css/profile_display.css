@@ -1,0 +1,179 @@
+body {
+    font-family: 'Arial', sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 20px; /* Add some padding around the content */
+}
+
+.profile-container {
+    max-width: 800px;
+    margin: 30px auto;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+}
+
+.profile-card {
+    /* If profile-container is already card-like, this might be redundant */
+}
+
+.profile-header {
+    text-align: center;
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.profile-picture-main {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 15px;
+    border: 3px solid #fd5068; /* Tinder-like pink/red */
+}
+
+.profile-header h1 {
+    margin-bottom: 5px;
+    font-size: 2em;
+    color: #333;
+}
+
+.profile-username {
+    color: #777;
+    font-size: 1.1em;
+    margin-bottom: 10px;
+}
+
+.profile-details h2,
+.profile-photos h2 {
+    font-size: 1.5em;
+    color: #fd5068;
+    margin-bottom: 15px;
+    padding-bottom: 5px;
+    border-bottom: 2px solid #fd5068;
+}
+
+.detail-item {
+    margin-bottom: 12px;
+    padding: 8px 0;
+    border-bottom: 1px dashed #eee;
+}
+
+.detail-item:last-child {
+    border-bottom: none;
+}
+
+.detail-item strong {
+    display: inline-block;
+    width: 120px; /* Adjust as needed */
+    color: #555;
+}
+
+.detail-item span,
+.detail-item p {
+    display: inline;
+}
+
+.interests-list {
+    list-style: none;
+    padding-left: 0;
+}
+
+.interests-list li {
+    display: inline-block;
+    background-color: #e9e9e9;
+    color: #333;
+    padding: 5px 10px;
+    margin: 3px;
+    border-radius: 15px;
+    font-size: 0.9em;
+}
+
+.photo-gallery {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px; /* Space between photos */
+    margin-bottom: 20px;
+}
+
+.photo-item { /* Added this rule to ensure it's the positioning context */
+    position: relative;
+}
+
+.photo-item img {
+    width: 150px; /* Adjust as needed */
+    height: 150px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
+
+.profile-actions {
+    text-align: center;
+    margin-top: 25px;
+}
+
+/* Basic Button Styling (Consider moving to global CSS) */
+.btn {
+    display: inline-block;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    text-decoration: none;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.primary-btn {
+    background-color: #fd5068; /* Tinder-like pink/red */
+    color: white;
+}
+
+.primary-btn:hover {
+    background-color: #e03c52;
+}
+
+.secondary-btn {
+    background-color: #f0f0f0;
+    color: #333;
+    border: 1px solid #ccc;
+}
+
+.secondary-btn:hover {
+    background-color: #e0e0e0;
+}
+
+.delete-photo-form {
+    position: absolute;
+    top: 8px; /* Adjust for better placement */
+    right: 8px; /* Adjust for better placement */
+    opacity: 0; /* Initially hidden */
+    transition: opacity 0.3s ease-in-out; /* Smooth transition for appearing/disappearing */
+}
+
+.photo-item:hover .delete-photo-form {
+    opacity: 1; /* Show on hover of the parent .photo-item */
+}
+
+.btn-delete-photo {
+    background-color: rgba(40, 40, 40, 0.6); /* Slightly darker semi-transparent background */
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 25px;
+    height: 25px;
+    font-size: 16px;
+    line-height: 25px;
+    text-align: center;
+    cursor: pointer;
+    padding: 0;
+}
+
+.btn-delete-photo:hover {
+    background-color: rgba(220, 53, 69, 0.8); /* Bootstrap's danger color, slightly transparent */
+}

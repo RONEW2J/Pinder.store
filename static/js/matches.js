@@ -5,10 +5,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const unmatchButtons = document.querySelectorAll('.unmatch-btn');
     let profileIdToUnmatch = null;
 
-    const distanceFilterForm = document.getElementById('distanceFilterForm');
-    const radiusSlider = document.getElementById('search_radius_km'); // Assuming this is your range slider
-    const radiusDisplay = document.getElementById('radiusValueDisplay'); // Assuming this displays the slider value
-    const profilesGrid = document.getElementById('profilesGrid'); // Use ID for more specific targeting
+    // Updated filter elements
+    const discoveryFilterForm = document.getElementById('discoveryFilterForm'); // The <form> element
+    const citySelect = document.getElementById('city'); // The <select> for cities
+    // Interest checkboxes will be handled by querying the form
+    const profilesGrid = document.getElementById('profilesGrid');
 
     function getCsrfToken() {
         // A more robust way to get the CSRF token, especially if the input isn't always present
@@ -29,14 +30,26 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    function fetchProfiles(radiusKm = '50') { // Pass radius as an argument, default to 50
+    function fetchProfiles(cityId = '', interestIds = []) {
         if (!profilesGrid) {
             console.warn('Profiles grid not found on this page.');
             return;
         }
         
-        const apiUrl = `/api/profiles/?radius_km=${encodeURIComponent(radiusKm)}`;
         profilesGrid.innerHTML = '<p style="text-align:center; padding: 20px;">Loading profiles...</p>';
+
+        // Construct API URL with new filters
+        const params = new URLSearchParams();
+        if (cityId) {
+            params.append('city', cityId);
+        }
+        interestIds.forEach(id => {
+            params.append('interests', id);
+        });
+
+        const queryString = params.toString();
+        const apiUrl = `/api/v1/profiles/all/${queryString ? '?' + queryString : ''}`;
+        console.log('Fetching profiles from:', apiUrl);
 
         fetch(apiUrl, {
             method: 'GET',
@@ -67,7 +80,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 // Add event listeners for new like/pass buttons after they are added to the DOM
                 setupSwipeActionButtons();
             } else {
-                profilesGrid.innerHTML = '<p style="text-align:center; padding: 20px;">No new profiles found matching your criteria. Try expanding your search radius!</p>';
+                profilesGrid.innerHTML = '<p style="text-align:center; padding: 20px;">No new profiles found matching your criteria. Try adjusting your filters!</p>';
             }
         })
         .catch(error => {
@@ -81,10 +94,10 @@ document.addEventListener('DOMContentLoaded', function () {
         const user = profile.user || {}; 
         const profilePhotoUrl = (profile.photos && profile.photos.length > 0 && profile.photos[0].image) 
                                 ? profile.photos[0].image 
-                                : '/static/images/default_avatar.png'; // Ensure this path is correct
+                                : '/static/images/default_avatar.png'; 
         
-        const distanceText = (profile.distance !== null && profile.distance !== undefined)
-                           ? `<p class="match-location"><i class="fas fa-map-marker-alt"></i> ~ ${parseFloat(profile.distance).toFixed(1)} km away</p>` 
+        const cityText = profile.city && profile.city.name
+                       ? `<p class="match-location"><i class="fas fa-map-marker-alt"></i> ${profile.city.name}</p>`
                            : '';
 
         const card = document.createElement('div');
@@ -92,20 +105,15 @@ document.addEventListener('DOMContentLoaded', function () {
         card.innerHTML = `
             <div class="match-photo" style="background-image: url('${profilePhotoUrl}')">
                 <div class="match-actions">
-                    <button class="btn like-btn" data-user-id="${user.id || profile.user_id}"><i class="fas fa-heart"></i> Like</button>
-                    <button class="btn pass-btn" data-user-id="${user.id || profile.user_id}"><i class="fas fa-times"></i> Pass</button>
+                    <button class="btn like-btn" data-user-id="${profile.user_id || user.id}"><i class="fas fa-heart"></i> Like</button>
+                    <button class="btn pass-btn" data-user-id="${profile.user_id || user.id}"><i class="fas fa-times"></i> Pass</button>
                 </div>
             </div>
             <div class="match-info">
                 <h3>${user.first_name || user.username || 'User'}, ${profile.age || 'N/A'}</h3>
-                ${distanceText}
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching profiles:', error);
-            profilesGrid.innerHTML = '<p>Could not load profiles. Please try again later.</p>';
-        });
-    }
+                ${cityText} 
+                <!-- You can add interests here if desired -->
+            </div>
         `;
         return card;
     }
@@ -143,32 +151,31 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // --- Distance Filter for Profile Discovery (AJAX) ---
-    if (radiusSlider && profilesGrid) { // Check for slider specifically
-        radiusSlider.addEventListener('input', function() {
-            if (radiusDisplay) radiusDisplay.textContent = this.value;
-        });
-        radiusSlider.addEventListener('change', function() { // 'change' event fires when user releases mouse
-            fetchProfiles(this.value);
-            // Optional: Update URL query parameter without full reload
-            // const currentUrl = new URL(window.location);
-            // currentUrl.searchParams.set('radius_km', this.value);
-            // window.history.pushState({}, '', currentUrl);
-        });
-        // Initial fetch on page load using the slider's current value
-        fetchProfiles(radiusSlider.value);
-
-    } else if (distanceFilterForm && profilesGrid) { // Fallback for simple form submission
-        distanceFilterForm.addEventListener('submit', function(event) {
+    // --- Filters for Profile Discovery (AJAX) ---
+    if (discoveryFilterForm && profilesGrid) {
+        discoveryFilterForm.addEventListener('submit', function(event) {
             event.preventDefault();
-            const radiusKmInput = document.getElementById('radius_km'); // Assuming this is the ID of the input field in the form
-            const radiusKm = radiusKmInput ? radiusKmInput.value : '50';
-            fetchProfiles(radiusKm);
+            
+            const selectedCityId = citySelect ? citySelect.value : '';
+            const selectedInterestIds = Array.from(discoveryFilterForm.querySelectorAll('input[name="interests"]:checked'))
+                                           .map(checkbox => checkbox.value);
+            
+            fetchProfiles(selectedCityId, selectedInterestIds);
+
+            // Optional: Update URL query parameters without full page reload
+            const currentUrl = new URL(window.location);
+            currentUrl.searchParams.delete('city'); // Clear existing
+            if (selectedCityId) currentUrl.searchParams.set('city', selectedCityId);
+            currentUrl.searchParams.delete('interests'); // Clear existing
+            selectedInterestIds.forEach(id => currentUrl.searchParams.append('interests', id));
+            window.history.pushState({}, '', currentUrl.toString());
         });
-        // Initial fetch for form based
-        const initialRadiusInput = document.getElementById('radius_km');
-        const initialRadius = initialRadiusInput ? initialRadiusInput.value : '50';
-        fetchProfiles(initialRadius);
+
+        // Initial fetch on page load using current URL parameters or defaults
+        const initialUrlParams = new URLSearchParams(window.location.search);
+        const initialCityId = initialUrlParams.get('city') || '';
+        const initialInterestIds = initialUrlParams.getAll('interests') || [];
+        fetchProfiles(initialCityId, initialInterestIds);
     }
 
     if (cancelUnmatchButton) {

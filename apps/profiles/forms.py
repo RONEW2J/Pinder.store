@@ -1,14 +1,15 @@
 from django import forms
-from .models import Profile, Interest, Photo
-from django.contrib.gis.forms import PointField # For location
+from .models import Profile, Interest, Photo, City
 
 class ProfileEditForm(forms.ModelForm):
     # You might want to use a widget that's easier for users to input coordinates,
     # or handle location updates differently (e.g., via JavaScript and a map API).
     # For now, PointField will render as a text input expecting WKT or similar.
-    location = PointField(
-        required=False,
-        help_text="Enter as 'POINT(longitude latitude)', e.g., POINT(-0.1278 51.5074). You can find your coordinates using an online map tool."
+    city = forms.ModelChoiceField(
+        queryset=City.objects.all().order_by('name'), # Or however you want to order/filter cities
+        required=False, # Or True, depending on your model
+        label="Your City",
+        widget=forms.Select(attrs={'class': 'form-control'}) # Standard select dropdown
     )
     interests = forms.ModelMultipleChoiceField(
         queryset=Interest.objects.all(),
@@ -20,12 +21,14 @@ class ProfileEditForm(forms.ModelForm):
 
     class Meta:
         model = Profile
-        fields = ['age', 'bio', 'location', 'interests']
+        fields = ['age', 'bio', 'city', 'interests', 'gender', 'phone_number']
 
 class PhotoUploadForm(forms.ModelForm):
     class Meta:
         model = Photo
-        fields = ['image', 'caption'] # Add 'is_profile_picture' if you want to set it on upload
+        fields = ['image', 'caption', 'is_profile_avatar']
         widgets = {
-            'caption': forms.Textarea(attrs={'rows': 3}),
+            'image': forms.ClearableFileInput(attrs={'class': 'form-control-file'}),
+            'caption': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Optional caption'}),
+            'is_profile_avatar': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }

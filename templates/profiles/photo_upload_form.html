@@ -1,22 +1,44 @@
+{# c:\Users\user\PycharmProjects\TinderCloneProject\templates\profiles\photo_upload_form.html (Example) #}
 {% extends "base.html" %}
 {% load static %}
 
 {% block title %}Upload Photo{% endblock %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{% static 'css/auth.css' %}"> {# Reusing auth.css for similar form styling #}
+    <link rel="stylesheet" href="{% static 'css/auth.css' %}"> {# Reusing auth.css for general card layout #}
+    <link rel="stylesheet" href="{% static 'css/photo_upload_form.css' %}"> {# Specific styles for this form #}
 {% endblock %}
 
 {% block content %}
-<div class="auth-container">
+<div class="auth-container"> {# Or your preferred container class #}
     <div class="auth-card">
         <div class="auth-header">
-            <h1>Upload a New Photo</h1>
+            <h1>Upload New Photo</h1>
         </div>
-
         <form method="post" enctype="multipart/form-data" class="auth-form">
             {% csrf_token %}
-            {{ form.as_p }}
+            
+            <div class="form-group">
+                {{ form.image.label_tag }}
+                {{ form.image }}
+                {% for error in form.image.errors %}<div class="errorlist">{{ error }}</div>{% endfor %}
+            </div>
+
+            <div class="form-group">
+                {{ form.caption.label_tag }}
+                {{ form.caption }}
+                {% for error in form.caption.errors %}<div class="errorlist">{{ error }}</div>{% endfor %}
+            </div>
+
+            <div class="form-group form-check"> {# Styling for checkbox #}
+                {{ form.is_profile_avatar }}
+                {{ form.is_profile_avatar.label_tag }}
+                {% if form.is_profile_avatar.help_text %}
+                    <small class="form-text text-muted">{{ form.is_profile_avatar.help_text }}</small>
+                {% endif %}
+                {% for error in form.is_profile_avatar.errors %}<div class="errorlist">{{ error }}</div>{% endfor %}
+            </div>
+
             <button type="submit" class="btn primary-btn full-width">Upload Photo</button>
         </form>
         <div class="auth-footer" style="margin-top: 15px;">

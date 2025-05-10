@@ -3,8 +3,13 @@ from rest_framework.response import Response
 from django.db.models import Q
 from .models import Match, Conversation, Message
 from .serializers import MatchSerializer, ConversationSerializer, MessageSerializer
-from django.shortcuts import render #
+from django.shortcuts import render, redirect, get_object_or_404 # Added redirect and get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import get_user_model # Import get_user_model
+from apps.profiles.models import City, Interest
+
+
+User = get_user_model()
 
 # Create your views here.
 
@@ -41,20 +46,27 @@ class MessageListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        # The permission check for conversation participation is better handled in the list method
+        # or by overriding dispatch, to return appropriate HTTP status codes.
+        # For get_queryset, we can assume the check will happen.
         conversation_id = self.kwargs.get('conversation_id')
-        # Ensure the user is part of this conversation before listing messages
-        if Conversation.objects.filter(id=conversation_id, participants=self.request.user).exists():
-            return Message.objects.filter(conversation_id=conversation_id).order_by('created_at')
-        return Message.objects.none() # Return empty queryset if user is not a participant
+        return Message.objects.filter(conversation_id=conversation_id).order_by('created_at')
 
     def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        if not queryset.exists() and not Conversation.objects.filter(id=self.kwargs.get('conversation_id'), participants=request.user).exists():
-             # Check if the conversation itself exists and if the user is a participant
-            if not Conversation.objects.filter(id=self.kwargs.get('conversation_id')).exists():
+        conversation_id = self.kwargs.get('conversation_id')
+        try:
+            # Ensure the conversation exists and the user is a participant
+            # This will raise Conversation.DoesNotExist if not found or user is not a participant,
+            # which DRF handles as a 404 by default if not caught.
+            # For more specific 403, we catch it.
+            conversation = Conversation.objects.get(id=conversation_id, participants=request.user)
+        except Conversation.DoesNotExist:
+            # Check if the conversation exists at all to differentiate 404 from 403
+            if not Conversation.objects.filter(id=conversation_id).exists():
                 return Response({"detail": "Conversation not found."}, status=status.HTTP_404_NOT_FOUND)
             return Response({"detail": "You do not have permission to view messages for this conversation."}, status=status.HTTP_403_FORBIDDEN)
         
+        queryset = self.get_queryset().filter(conversation=conversation) # Filter messages for this specific conversation
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
@@ -74,54 +86,91 @@ class ConversationDetailView(generics.RetrieveAPIView):
 
     def get_queryset(self):
         # Ensure user is a participant
-        return super().get_queryset().filter(participants=self.request.user)
+        return Conversation.objects.filter(participants=self.request.user)
 
-@login_required # Ensures only logged-in users can access this page
-def list_matches_view(request):
+@login_required
+def list_matches_view(request): # This view might be for displaying *existing* matches
     user = request.user
-    # Fetch matches where the current user is either user1 or user2
-    matches = Match.objects.filter(Q(user1=user) | Q(user2=user)).select_related('user1', 'user2')
+    matches_queryset = Match.objects.filter(
+        Q(user1=user) | Q(user2=user)
+    ).select_related(
+        'user1__profile', 
+        'user2__profile',
+        'conversation'
+    ).prefetch_related(
+        'user1__profile__photos',
+        'user2__profile__photos',
+        'conversation__messages' # If you show unread counts or last message
+    ).order_by('-created_at')
 
-    # Prepare a list of matched profiles to display
-    matched_profiles_data = []
-    for match in matches:
-        other_user = match.user2 if match.user1 == user else match.user1
-        # You'd typically fetch the Profile object for other_user here
-        # For simplicity, let's assume you have a way to get profile info
-        # like profile picture URL and name from the User object or its related Profile.
-
-        # Example: Fetching profile (ensure you have a Profile model linked to User)
-        try:
-            other_user_profile = other_user.profile # Assumes a OneToOneField 'profile' on User
-            profile_pic_url = other_user_profile.photos.filter(is_profile_picture=True).first().image.url if other_user_profile.photos.filter(is_profile_picture=True).exists() else '/static/images/default_avatar.png' # Fallback
-        except AttributeError: # If no profile or photos setup
-            other_user_profile = None
-            profile_pic_url = '/static/images/default_avatar.png'
-
-
-        matched_profiles_data.append({
-            'id': other_user.id, # ID of the matched user
-            'username': other_user.username,
-            'profile_picture_url': profile_pic_url,
-            'conversation_url': f'/chat/{match.id}/' # Assuming match ID can link to a conversation or you use conversation ID
-        })
+    # If this view also powers the discovery filters, add city/interest lists
+    all_cities_list = City.objects.all().order_by('name')
+    all_interests_list = Interest.objects.all().order_by('name')
 
     context = {
-        'matched_profiles': matched_profiles_data,
+        'all_matches': matches_queryset, # Pass the queryset of Match objects
+        'all_cities': all_cities_list,   # For the filter dropdown
+        'all_interests': all_interests_list, # For the filter checkboxes
+        # 'new_matches': ... # If you have separate logic for this
     }
     return render(request, 'matches.html', context)
 
 @login_required
-def chat_view(request, conversation_id): # Assuming conversation_id is passed in URL
-    # Fetch conversation details, messages, etc.
-    # For now, just rendering the template
-    # You'd fetch the specific conversation and its messages here
-    # and pass them to the context.
-    # Also, pass the current user's ID for the JavaScript.
+def chat_view(request, conversation_id):
+    conversation = get_object_or_404(Conversation, id=conversation_id, participants=request.user)
+    messages = conversation.messages.all().order_by('created_at')
+    other_participant = None
+    for participant in conversation.participants.all():
+        if participant != request.user:
+            other_participant = participant
+            break
+    other_user_profile = getattr(other_participant, 'profile', None)
     context = {
         'conversation_id': conversation_id,
-        'current_user_id': request.user.id, 
-        # 'messages': fetched_messages,
-        # 'other_user_profile': other_user_in_chat_profile,
+        'current_user_id': request.user.id,
+        'messages': messages,
+        'other_user_profile': other_user_profile,
+        'conversation_obj': conversation,
     }
-    return render(request, 'chat.html', context)
+    
+@login_required
+def create_or_get_conversation_view(request, target_user_id):
+    target_user = get_object_or_404(User, pk=target_user_id)
+    current_user = request.user
+
+    if target_user == current_user:
+        # User trying to create a conversation with themselves, redirect or show error
+        messages.error(request, "You cannot start a conversation with yourself.")
+        return redirect('profiles:profile-display') # Or some other appropriate page
+
+    # Check if a conversation already exists between these two users
+    # This query needs to be robust to find the conversation regardless of who is "user1" or "user2"
+    # in a hypothetical direct M2M or by checking participants.
+    
+    # Assuming Conversation.participants is a ManyToManyField to User model
+    conversation = Conversation.objects.filter(
+        participants=current_user
+    ).filter(
+        participants=target_user
+    ).first() # Get the first one if multiple somehow exist (shouldn't with proper setup)
+
+    if not conversation:
+        # No existing conversation, create a new one
+        conversation = Conversation.objects.create()
+        conversation.participants.add(current_user, target_user)
+        # Optionally, create an initial "Match" object if your logic requires it here
+        # Or if a Match object is what *leads* to a conversation, this view might be called
+        # after a Match is confirmed.
+        # For now, we assume clicking "Message" can initiate the conversation.
+        
+        # Example: If a Match should also be created or confirmed
+        # match, created = Match.objects.get_or_create(
+        #     user1=min(current_user, target_user, key=lambda u: u.id),
+        #     user2=max(current_user, target_user, key=lambda u: u.id),
+        #     defaults={'conversation': conversation}
+        # )
+        # if not created and not match.conversation: # If match existed but no conversation linked
+        #     match.conversation = conversation
+        #     match.save()
+
+    return redirect('matches:chat-page', conversation_id=conversation.id)
