@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Edit Your Profile{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/auth.css' %}"> {# You can reuse auth.css or create a new one #}
+    <style>
+        /* Additional styles for profile edit form if needed */
+        .form-group ul { list-style-type: none; padding-left: 0; }
+        .form-group ul li { margin-bottom: 5px; }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h1>Edit Profile</h1>
+            <p>Update your profile information.</p>
+        </div>
+
+        <form method="post" enctype="multipart/form-data" class="auth-form">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn primary-btn full-width">Save Changes</button>
+        </form>
+        <div class="auth-footer" style="margin-top: 15px;">
+            <a href="{% url 'profiles:profile-display' %}">Cancel and View Profile</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

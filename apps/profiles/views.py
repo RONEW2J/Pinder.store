@@ -1,17 +1,21 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404, redirect
 from rest_framework import generics, permissions, filters
 from django_filters.rest_framework import DjangoFilterBackend # Import DjangoFilterBackend
 from django.db.models import Q, Case, When, F, IntegerField
+from django.contrib import messages
 
 from .models import Profile, Interest, Photo # Added Photo
 from apps.actions.models import Swipe # For filtering based on swipes
 from apps.matches.models import Match # For filtering based on matches
 from .serializers import ProfileSerializer, InterestSerializer, PhotoSerializer # Added PhotoSerializer
+from .forms import ProfileEditForm 
 
 from django.contrib.gis.geos import Point
 from django.contrib.gis.measure import D # Distance object
 from django.contrib.gis.db.models.functions import Distance as DistanceFunc
 
+from django.shortcuts import render, get_object_or_404
+from django.contrib.auth.decorators import login_required
 
 # Create your views here.
 
@@ -116,3 +120,40 @@ class PhotoDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         return Photo.objects.filter(profile__user=self.request.user)
+    
+@login_required
+def user_profile_display_view(request):
+    # Assuming a Profile is created for each User, e.g., via a signal
+    # If not, you might need get_or_create
+    try:
+        profile = request.user.profile
+    except Profile.DoesNotExist:
+        # Handle case where profile doesn't exist, maybe create it
+        # or redirect to a profile creation page.
+        # For now, let's assume it should exist.
+        # If you have a signal to create Profile on User creation, this should be fine.
+        # If not, you might want to redirect to a "create profile" page.
+        return render(request, 'profiles/profile_not_found.html') # Or some other handling
+
+    context = {'profile': profile}
+    return render(request, 'profiles/profile_display.html', context)
+
+@login_required
+def profile_edit_view(request):
+    try:
+        profile = request.user.profile
+    except Profile.DoesNotExist:
+        # Handle case where profile doesn't exist, perhaps create one
+        # For now, redirecting or showing an error.
+        messages.error(request, "Profile not found. Please contact support.")
+        return redirect('profiles:profile-display') # Or 'home'
+
+    if request.method == 'POST':
+        form = ProfileEditForm(request.POST, request.FILES, instance=profile)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Your profile has been updated successfully!')
+            return redirect('profiles:profile-display')
+    else:
+        form = ProfileEditForm(instance=profile)
+    return render(request, 'profiles/profile_edit_form.html', {'form': form, 'profile': profile})

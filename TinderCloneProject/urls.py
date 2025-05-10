@@ -23,6 +23,7 @@ from django.conf.urls.static import static
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
+from .views import home_view
 from django.views.generic import RedirectView # Import RedirectView
 
 
@@ -40,11 +41,14 @@ schema_view = get_schema_view(
 )
 
 urlpatterns = [
-    path('', RedirectView.as_view(url='/swagger/', permanent=False)), # Add this line to redirect root to Swagger
+    # path('', RedirectView.as_view(url='/swagger/', permanent=False)), # Add this line to redirect root to Swagger
+    path('', home_view, name='home'),
     path('admin/', admin.site.urls),
-    path('api/auth/', include('apps.accounts.urls')),
-    path('api/profiles/', include('apps.profiles.urls')),
-    path('api/matches/', include('apps.matches.urls')),
+    path('auth/', include('apps.accounts.urls', namespace='accounts')),
+    path('accounts/', include('allauth.urls')), 
+    path('social-auth/', include('social_django.urls', namespace='social')), # For python-social-auth
+    path('profiles/', include('apps.profiles.urls', namespace='profiles')), # For your custom profile UI and API
+    path('api/matches/', include('apps.matches.urls', namespace='matches_ui')),
     path('api/notifications/', include('apps.notifications.urls')),
     path('api/actions/', include('apps.actions.urls')),
     path('swagger<format>/', schema_view.without_ui(cache_timeout=0), name='schema-json'),

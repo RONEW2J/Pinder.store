@@ -1,0 +1,185 @@
+/* static/css/auth.css */
+
+body {
+    font-family: 'Arial', sans-serif; /* Or your preferred font from base.html */
+    background-color: #f4f6f8; /* Light background for the page */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 90vh; /* Make sure it takes at least most of the viewport height */
+    margin: 0;
+    padding: 20px;
+}
+
+.auth-container {
+    width: 100%;
+    max-width: 450px; /* Max width of the auth card */
+}
+
+.auth-card {
+    background-color: #ffffff;
+    padding: 30px 40px;
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.auth-header h1 {
+    font-size: 2em;
+    color: #333;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.auth-header p {
+    color: #666;
+    margin-bottom: 30px;
+    font-size: 0.95em;
+}
+
+.auth-form .form-group {
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.auth-form label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #555;
+    font-size: 0.9em;
+}
+
+.auth-form input[type="text"],
+.auth-form input[type="email"],
+.auth-form input[type="password"] {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    box-sizing: border-box;
+    font-size: 1em;
+    transition: border-color 0.3s ease;
+}
+
+.auth-form input[type="text"]:focus,
+.auth-form input[type="email"]:focus,
+.auth-form input[type="password"]:focus {
+    border-color: #fd5068; /* Tinder-like pink/red for focus */
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(253, 80, 104, 0.2);
+}
+
+.form-errors .error,
+.field-errors .error {
+    color: #dc3545; /* Bootstrap danger color */
+    font-size: 0.85em;
+    margin-top: 5px;
+    text-align: left;
+}
+
+.form-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    font-size: 0.85em;
+}
+
+.remember-me {
+    display: flex;
+    align-items: center;
+}
+
+.remember-me input[type="checkbox"] {
+    margin-right: 8px;
+    accent-color: #fd5068;
+}
+
+.remember-me label,
+.forgot-password {
+    color: #555;
+    text-decoration: none;
+}
+
+.forgot-password:hover {
+    text-decoration: underline;
+    color: #fd5068;
+}
+
+.btn.primary-btn.full-width {
+    width: 100%;
+    padding: 12px;
+    font-size: 1.1em;
+    background-color: #fd5068;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    font-weight: 500;
+}
+
+.btn.primary-btn.full-width:hover {
+    background-color: #e03c52;
+}
+
+.social-login {
+    margin-top: 30px;
+    font-size: 0.9em;
+    color: #777;
+}
+
+.social-login p {
+    margin-bottom: 15px;
+}
+
+.social-buttons .btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: background-color 0.3s ease;
+}
+
+.social-buttons .btn i {
+    margin-right: 10px;
+    font-size: 1.2em;
+}
+
+.social-btn.google-btn {
+    background-color: #db4437;
+    color: white;
+}
+.social-btn.google-btn:hover {
+    background-color: #c23327;
+}
+
+.social-btn.facebook-btn {
+    background-color: #3b5998;
+    color: white;
+}
+.social-btn.facebook-btn:hover {
+    background-color: #2d4373;
+}
+
+.auth-footer {
+    margin-top: 25px;
+    font-size: 0.9em;
+    color: #666;
+}
+
+.auth-footer a {
+    color: #fd5068;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.auth-footer a:hover {
+    text-decoration: underline;
+}

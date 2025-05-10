@@ -1,12 +1,17 @@
 from django.urls import path
-from . import views
+from . import views as template_views 
+from . import views_api 
 
 app_name = 'matches'
 
 urlpatterns = [
-    path('my-matches/', views.MatchListView.as_view(), name='my-matches-list'),
-    path('conversations/', views.ConversationListView.as_view(), name='conversation-list'),
-    path('conversations/<int:conversation_id>/messages/', views.MessageListView.as_view(), name='message-list'),
-    # If you need a detail view for a conversation (e.g., for the signal's reverse lookup if it's backend)
-    path('conversations/<int:id>/', views.ConversationDetailView.as_view(), name='conversation_detail'),
+    # API Endpoints
+    path('api/my-matches/', views_api.MatchListView.as_view(), name='api-my-matches-list'),
+    path('api/conversations/', views_api.ConversationListView.as_view(), name='api-conversation-list'),
+    path('api/conversations/<int:id>/', views_api.ConversationDetailView.as_view(), name='api-conversation-detail'), # For retrieving a specific conversation
+    path('api/conversations/<int:conversation_id>/messages/', views_api.MessageListView.as_view(), name='api-message-list'),
+
+    # UI (HTML Template) Endpoints
+    path('', template_views.list_matches_view, name='matches-page'),
+    path('chat/<int:conversation_id>/', template_views.chat_view, name='chat-page'),
 ]

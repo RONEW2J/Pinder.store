@@ -15,7 +15,7 @@
             <p>Welcome back! Please log in to your account.</p>
         </div>
 
-        <form method="post" class="auth-form">
+        <form method="post" action="{% url 'accounts:login_page' %}" class="auth-form">
             {% csrf_token %}
             
             {% if form.non_field_errors %}
@@ -55,7 +55,8 @@
                     <input type="checkbox" id="remember_me" name="remember_me">
                     <label for="remember_me">Remember me</label>
                 </div>
-                <a href="{% url 'password_reset' %}" class="forgot-password">Forgot password?</a>
+                {# Assuming you have a password reset URL named 'password_reset' in your accounts app or globally #}
+                <a href="{% url 'accounts:password_reset' %}" class="forgot-password">Forgot password?</a>
             </div>
             
             <button type="submit" class="btn primary-btn full-width">Log In</button>
@@ -66,15 +67,12 @@
                     <a href="{% url 'social:begin' 'google-oauth2' %}" class="btn social-btn google-btn">
                         <i class="fab fa-google"></i> Google
                     </a>
-                    <a href="{% url 'social:begin' 'facebook' %}" class="btn social-btn facebook-btn">
-                        <i class="fab fa-facebook-f"></i> Facebook
-                    </a>
                 </div>
             </div>
         </form>
         
         <div class="auth-footer">
-            <p>Don't have an account? <a href="{% url 'register' %}">Sign up</a></p>
+            <p>Don't have an account? <a href="{% url 'accounts:register_page' %}">Sign up</a></p>
         </div>
     </div>
 </div>

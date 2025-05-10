@@ -52,6 +52,14 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.gis',
     
+    # Django Allauth - must come before django.contrib.admin if overriding admin templates
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount', # For social login (Google, Facebook, etc.)
+    # Providers for allauth (add as needed)
+    'allauth.socialaccount.providers.google',
+    # 'allauth.socialaccount.providers.facebook',
+
     # Third party apps
     'rest_framework',
     'rest_framework_simplejwt',
@@ -60,6 +68,9 @@ INSTALLED_APPS = [
     'silk', # For profiling
     'corsheaders', # For CORS
     'storages', # For S3/MinIO
+    'oauth2_provider',
+    'social_django',
+    # 'rest_framework_social_oauth2', # You might not need this if using allauth for social and simplejwt for API
 
     # Local apps
     'apps.accounts.apps.AccountsConfig',
@@ -77,6 +88,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'allauth.account.middleware.AccountMiddleware', # Add allauth AccountMiddleware
     'silk.middleware.SilkyMiddleware', # Silk middleware
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -96,6 +108,8 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'social_django.context_processors.backends',
+                'social_django.context_processors.login_redirect',
             ],
         },
     },
@@ -280,3 +294,34 @@ if env('USE_S3', cast=bool, default=False):
     DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
     # STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage' # If you want to serve static files from S3 too
     MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{AWS_LOCATION}/' if AWS_S3_CUSTOM_DOMAIN else f'{AWS_S3_ENDPOINT_URL}/{AWS_STORAGE_BUCKET_NAME}/{AWS_LOCATION}/'
+
+# Email Configuration (for development - prints to console)
+if DEBUG:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+else:
+    # Configure your actual email backend for production
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = 'your_smtp_server'
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+    EMAIL_HOST_USER = 'your_email_address'
+    EMAIL_HOST_PASSWORD = 'your_email_password'
+    DEFAULT_FROM_EMAIL = 'webmaster@localhost' # Or your actual from email
+
+AUTHENTICATION_BACKENDS = (
+    'social_core.backends.google.GoogleOAuth2',
+    'django.contrib.auth.backends.ModelBackend', # Keep Django's default
+)
+
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = env('GOOGLE_OAUTH2_CLIENT_ID', default='')
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = env('GOOGLE_OAUTH2_CLIENT_SECRET', default='')
+SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = [
+    'https://www.googleapis.com/auth/userinfo.email',
+    'https://www.googleapis.com/auth/userinfo.profile',
+]
+
+ACCOUNT_USERNAME_REQUIRED = False # Or True, depending on your needs
+ACCOUNT_AUTHENTICATION_METHOD = 'email' # Or 'username' or 'username_email'
+ACCOUNT_EMAIL_VERIFICATION = 'optional' # Or 'mandatory' or 'none'
+LOGIN_REDIRECT_URL = 'profiles:profile-display' # Redirect to your custom profile display page
+ACCOUNT_LOGOUT_REDIRECT_URL = 'home' # Default redirect after logout

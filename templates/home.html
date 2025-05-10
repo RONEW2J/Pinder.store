@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Welcome to Tinder Clone{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/home.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="home-container">
+    <section class="hero-section">
+        <h1>Welcome to Tinder Clone!</h1>
+        <p>Find your match and start connecting.</p>
+        {% if not user.is_authenticated %}
+            <div class="hero-actions">
+                <a href="{% url 'accounts:login_page' %}" class="btn btn-primary">Login</a>
+                <a href="{% url 'accounts:register_page' %}" class="btn btn-secondary">Register</a>
+            </div>
+        {% else %}
+            <div class="hero-actions">
+                <a href="{% url 'profiles:profile-display' %}" class="btn btn-primary">View Your Profile</a>
+                <a href="{% url 'matches_ui:matches-page' %}" class="btn btn-secondary">See Your Matches</a>
+            </div>
+        {% endif %}
+    </section>
+
+    <section class="features-section">
+        <h2>Features</h2>
+        <div class="features-grid">
+            <div class="feature-item">
+                <i class="fas fa-search-location fa-3x"></i>
+                <h3>Discover People</h3>
+                <p>Explore profiles and find interesting people near you or with shared interests.</p>
+            </div>
+            <div class="feature-item">
+                <i class="fas fa-heart fa-3x"></i>
+                <h3>Match & Connect</h3>
+                <p>Like profiles you're interested in. If they like you back, it's a match!</p>
+            </div>
+            <div class="feature-item">
+                <i class="fas fa-comments fa-3x"></i>
+                <h3>Chat Securely</h3>
+                <p>Start conversations with your matches through our secure messaging system.</p>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+    <!-- Add any home-specific JS here if needed -->
+{% endblock %}

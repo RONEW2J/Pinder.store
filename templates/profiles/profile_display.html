@@ -1,0 +1,39 @@
+<!-- c:\Users\user\PycharmProjects\TinderCloneProject\templates\profiles\profile_display.html -->
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ profile.user.username }}'s Profile{% endblock %}
+
+{% block content %}
+<div class="container profile-container">
+    <h1>{{ profile.user.username }}</h1>
+    {% if profile.user.avatar %}
+        <img src="{{ profile.user.avatar.url }}" alt="{{ profile.user.username }}'s avatar" width="150">
+    {% endif %}
+    <p><strong>Email:</strong> {{ profile.user.email }}</p>
+    <p><strong>Phone:</strong> {{ profile.user.phone|default:"Not provided" }}</p>
+    <p><strong>Gender:</strong> {{ profile.user.get_gender_display|default:"Not specified" }}</p>
+    <p><strong>Bio:</strong> {{ profile.user.bio|default:"No bio yet." }}</p>
+    <p><strong>Age:</strong> {{ profile.age|default:"Not specified" }}</p>
+    <p><strong>Location:</strong> {{ profile.location|default:"Not set" }}</p>
+    <h3>Interests:</h3>
+    <ul>
+        {% for interest in profile.interests.all %}
+            <li>{{ interest.name }}</li>
+        {% empty %}
+            <li>No interests listed.</li>
+        {% endfor %}
+    </ul>
+    <h3>Photos:</h3>
+    {% for photo in profile.photos.all %}
+        <img src="{{ photo.image.url }}" alt="Photo" width="100">
+    {% empty %}
+        <p>No photos uploaded.</p>
+    {% endfor %}
+
+    {# Add a link to edit profile if this is the logged-in user's profile #}
+    {% if request.user == profile.user %}
+        <a href="{% url 'profiles:profile-edit' %}" class="btn">Edit Profile</a> {# Assuming you have an edit profile URL #}
+    {% endif %}
+</div>
+{% endblock %}
