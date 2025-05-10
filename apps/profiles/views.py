@@ -100,19 +100,19 @@ class ProfileListView(generics.ListAPIView):
         return queryset
 
 # You'll need to create these views for photo management
-# class PhotoListCreateView(generics.ListCreateAPIView):
-#     serializer_class = PhotoSerializer
-#     permission_classes = [permissions.IsAuthenticated]
-#
-#     def get_queryset(self):
-#         return Photo.objects.filter(profile__user=self.request.user)
-#
-#     def perform_create(self, serializer):
-#         serializer.save(profile=self.request.user.profile)
+class PhotoListCreateView(generics.ListCreateAPIView):
+    serializer_class = PhotoSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
-# class PhotoDetailView(generics.RetrieveUpdateDestroyAPIView):
-#     serializer_class = PhotoSerializer
-#     permission_classes = [permissions.IsAuthenticated]
-#
-#     def get_queryset(self):
-#         return Photo.objects.filter(profile__user=self.request.user)
+    def get_queryset(self):
+        return Photo.objects.filter(profile__user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(profile=self.request.user.profile)
+
+class PhotoDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = PhotoSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Photo.objects.filter(profile__user=self.request.user)

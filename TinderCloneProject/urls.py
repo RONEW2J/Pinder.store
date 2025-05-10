@@ -14,18 +14,20 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.contrib import admin
+from django.contrib import admin # type: ignore
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-
+# Unchanged lines # <--- THIS IS LIKELY THE ISSUE
 # For Swagger (drf-yasg)
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
+from django.views.generic import RedirectView # Import RedirectView
+
 
 schema_view = get_schema_view(
-   openapi.Info(
+   openapi.Info( # <--- Line 21 is likely here or just after the problematic "Unchanged lines"
       title="TinderClone API",
       default_version='v1',
       description="API documentation for the TinderClone Project",
@@ -38,6 +40,7 @@ schema_view = get_schema_view(
 )
 
 urlpatterns = [
+    path('', RedirectView.as_view(url='/swagger/', permanent=False)), # Add this line to redirect root to Swagger
     path('admin/', admin.site.urls),
     path('api/auth/', include('apps.accounts.urls')),
     path('api/profiles/', include('apps.profiles.urls')),

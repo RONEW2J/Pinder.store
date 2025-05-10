@@ -228,14 +228,13 @@ GEOS_LIBRARY_PATH = r'C:\OSGeo4W\bin\geos_c.dll'   # Path to your GEOS library
 AUTH_USER_MODEL = 'accounts.User'
 
 # Cache (Redis)
-CACHES = {
+CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": env('REDIS_URL', default="redis://127.0.0.1:6379/1"), # /1 for cache
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-        }
-    }
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [env('REDIS_URL', default="redis://127.0.0.1:6379/2")], # /2 for Channels
+        },
+    },
 }
 
 # Celery Configuration (using Redis as broker and backend)
