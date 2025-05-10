@@ -1,6 +1,8 @@
 from django.urls import path
 from . import views as template_views 
 from . import views_api 
+from .views import list_matches_view # Assuming this is your view
+
 
 app_name = 'matches'
 
@@ -12,6 +14,6 @@ urlpatterns = [
     path('api/conversations/<int:conversation_id>/messages/', views_api.MessageListView.as_view(), name='api-message-list'),
 
     # UI (HTML Template) Endpoints
-    path('', template_views.list_matches_view, name='matches-page'),
+    path('', list_matches_view, name='matches'),
     path('chat/<int:conversation_id>/', template_views.chat_view, name='chat-page'),
 ]

@@ -53,7 +53,11 @@
 
             <div class="profile-section">
                 <h3>About Me</h3>
-                <p>{{ profile.bio }}</p>
+                {% if profile.bio %}
+                    <p>Bio: {{ profile.bio }}</p>
+                {% else %}
+                    <p>Bio: No bio yet.</p>
+                {% endif %}
             </div>
 
             <div class="profile-section">

@@ -91,7 +91,7 @@
         {% if not all_matches %} {# Show this only if there are no existing matches AND no discovered profiles (JS will handle the latter) #}
             <div class="no-matches">
                 <p>You don't have any matches yet. Keep swiping to find someone!</p>
-                <a href="{% url 'home' %}" class="btn primary-btn">Find Matches</a>
+                <a href="{% url 'matches_ui:matches' %}" class="btn primary-btn">Find Matches</a>
             </div>
         {% endif %}
     </section> 

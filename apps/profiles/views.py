@@ -143,36 +143,54 @@ def profile_edit_view(request):
     try:
         profile = request.user.profile
     except Profile.DoesNotExist:
-        # Handle case where profile doesn't exist, perhaps create one
-        # For now, redirecting or showing an error.
         messages.error(request, "Profile not found. Please contact support.")
-        return redirect('profiles:profile-display') # Or 'home'
+        return redirect('profiles:profile-display')
 
     if request.method == 'POST':
         form = ProfileEditForm(request.POST, request.FILES, instance=profile)
         print(f"Form submitted. POST data: {request.POST}")
         if form.is_valid():
-            print(f"Form is valid. Cleaned data: {form.cleaned_data}") # DEBUG
+            print(f"Form is valid. Cleaned data: {form.cleaned_data}") # Logged data shows location: None here
             updated_profile = form.save(commit=False)
-            print(f"Bio from form before location: {updated_profile.bio}") # DEBUG
-            # Save the main form data (age, bio, interests)
-            updated_profile = form.save(commit=False) # <--- commit=False is key here
+            print(f"Bio from form before location: {updated_profile.bio}")
 
-            # Handle location from latitude and longitude fields
-            latitude = form.cleaned_data.get('latitude')
-            longitude = form.cleaned_data.get('longitude')
+            # Handle location:
+            # The form's 'location' field (PointField) might have set updated_profile.location.
+            # If request.POST['location'] was empty (as in logs), cleaned_data['location'] is None,
+            # so updated_profile.location is None at this point.
+            # We now check for separate latitude/longitude POST parameters and prioritize them.
 
-            if latitude is not None and longitude is not None:
-                updated_profile.location = Point(longitude, latitude, srid=4326) 
-            else:
-                updated_profile.location = None 
+            latitude_str = request.POST.get('latitude')
+            longitude_str = request.POST.get('longitude')
 
-            updated_profile.save() # <--- This saves age, bio, and location
-            # Important: If using ModelMultipleChoiceField for interests, save_m2m is needed after main save
-            print(f"Profile saved. Bio in DB should be: {Profile.objects.get(pk=profile.pk).bio}") # DEBUG
-            form.save_m2m() # <--- This saves interests
+            if latitude_str and longitude_str:
+                try:
+                    # Django Point constructor: x, y, z, srid
+                    # x is longitude, y is latitude
+                    lon_val = float(longitude_str)
+                    lat_val = float(latitude_str)
+                    updated_profile.location = Point(lon_val, lat_val, srid=4326)
+                except ValueError:
+                    messages.error(request, "Invalid format for latitude or longitude. Location was not updated from these inputs.")
+                    # If an error occurs, updated_profile.location will retain the value
+                    # set by form.save(commit=False) (likely None if 'location' form field was empty).
+            # If latitude_str or longitude_str are not present, updated_profile.location
+            # as set by form.save(commit=False) is used.
+
+            updated_profile.save()
+            form.save_m2m() # Important for M2M fields like interests
+            
+            # Critical Debugging Step: Re-fetch from DB and check bio
+            fresh_profile_check = Profile.objects.get(pk=updated_profile.pk)
+            print(f"Bio from DB immediately after save: {fresh_profile_check.bio}")
+            
+            # Debug print to verify save
+            print(f"Updated profile bio: {updated_profile.bio}, location: {updated_profile.location}")
+            
             messages.success(request, 'Your profile has been updated successfully!')
             return redirect('profiles:profile-display')
+        else:
+            print(f"Form is invalid. Errors: {form.errors}") # For debugging if form validation fails
     else:
         form = ProfileEditForm(instance=profile)
     return render(request, 'profiles/profile_edit_form.html', {'form': form, 'profile': profile})

@@ -12,17 +12,14 @@ def user_directory_path(instance, filename):
 # User = get_user_model()
 
 class Profile(models.Model):
-    user = models.OneToOneField(
-        settings.AUTH_USER_MODEL, 
-        on_delete=models.CASCADE, 
-        related_name='profile'
-    )  # Расширение данных пользователя
-    age = models.PositiveIntegerField(null=True, blank=True) # Consider if age can be optional initially
-    location = gis_models.PointField(geography=True, null=True, blank=True)  # GeoDjango - ensure PostGIS setup if using this
-    interests = models.ManyToManyField('Interest', blank=True)
-    bio = models.TextField(blank=True, null=True) 
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
+    age = models.PositiveIntegerField(null=True, blank=True)
+    bio = models.TextField(blank=True, null=True, default="DEBUG_BIO_FIELD")
     location = gis_models.PointField(geography=True, null=True, blank=True)
     interests = models.ManyToManyField('Interest', blank=True)
+    gender = models.CharField(max_length=10, choices=[('Male', 'Male'), ('Female', 'Female'), ('Other', 'Other')], null=True, blank=True)
+    phone_number = models.CharField(max_length=20, blank=True, null=True)
+ 
 
 class Interest(models.Model): # You'll need to define the Interest model
     name = models.CharField(max_length=100, unique=True)
