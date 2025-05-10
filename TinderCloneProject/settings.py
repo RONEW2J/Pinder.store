@@ -320,8 +320,22 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = [
     'https://www.googleapis.com/auth/userinfo.profile',
 ]
 
-ACCOUNT_USERNAME_REQUIRED = False # Or True, depending on your needs
-ACCOUNT_AUTHENTICATION_METHOD = 'email' # Or 'username' or 'username_email'
+# Django Allauth specific settings (optional, but often needed)
+# ACCOUNT_EMAIL_REQUIRED = True # Deprecated
+# ACCOUNT_AUTHENTICATION_METHOD = 'email' # Deprecated
+
+# New settings to replace deprecated ones:
+ACCOUNT_LOGIN_METHODS = {'username', 'email'}  # Users can log in using username OR email.
+
+ACCOUNT_SIGNUP_FIELDS = ['username', 'email', 'password'] # Fields required for signup.
+# Allauth handles password confirmation automatically if using its forms.
+
+# If your User model (from AbstractUser) has a username field but you don't want to use it:
+# ACCOUNT_USER_MODEL_USERNAME_FIELD = None # Remove or set to 'username'
+ACCOUNT_USER_MODEL_USERNAME_FIELD = 'username' # Explicitly tell allauth which field is the username
+ACCOUNT_USERNAME_REQUIRED = True        # Username is now required for signup
+
+
 ACCOUNT_EMAIL_VERIFICATION = 'optional' # Or 'mandatory' or 'none'
 LOGIN_REDIRECT_URL = 'profiles:profile-display' # Redirect to your custom profile display page
 ACCOUNT_LOGOUT_REDIRECT_URL = 'home' # Default redirect after logout

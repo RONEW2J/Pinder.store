@@ -27,14 +27,25 @@ class ProfileSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField(read_only=True) # Display username
     interests = InterestSerializer(many=True, read_only=False, required=False) # Made 'required=False' for partial updates
     photos = PhotoSerializer(many=True, read_only=True) # Add this line
+    distance = serializers.FloatField(read_only=True, required=False) # To show distance when annotated
 
     class Meta:
         model = Profile
         fields = [
                     'user', 'age', 'location', 'interests',
-                    'photos' # Add photos here
+                    'photos', 'bio', 'distance' # Add photos here
                 ]
+        read_only_fields = ['user']
         # For location, you might need a custom serializer field if using GeoDjango REST framework extensions
+
+    def get_location(self, obj):
+        # If you want to return a more user-friendly format for the location
+        if obj.location:
+            return {
+                'latitude': obj.location.y,
+                'longitude': obj.location.x
+            }
+        return None
 
     def update(self, instance, validated_data):
         interests_data = validated_data.pop('interests', None)

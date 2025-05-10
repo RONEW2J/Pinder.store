@@ -9,8 +9,22 @@
 
 {% block content %}
 <div class="container">
-    <h1 class="page-title">My Matches</h1>
+    {# Title can change based on whether this page is for "My Matches" or "Discover" #}
+    <h1 class="page-title">Discover Profiles</h1> 
     
+    <div class="filters-container" style="margin-bottom: 20px; padding: 15px; background-color: #f9f9f9; border-radius: 8px;">
+        <form id="discoveryFilterForm">
+            <label for="search_radius_km" style="margin-right: 10px; font-weight: bold;">Search Radius:</label>
+            <input type="range" id="search_radius_km" name="radius_km" 
+                   value="{{ request.GET.radius_km|default:50 }}"  {# Pre-fill if value exists in URL #}
+                   min="5" max="200" step="5" style="margin-right: 5px; vertical-align: middle;"
+                   oninput="document.getElementById('radiusValueDisplay').textContent = this.value">
+            <span id="radiusValueDisplay" style="font-weight: bold;">{{ request.GET.radius_km|default:50 }}</span> km
+            {# The button might not be strictly necessary if JS updates on slider change, but can be kept #}
+            {# <button type="submit" class="btn" style="background-color: #fd5068; color: white; padding: 8px 15px; margin-left:10px;">Search</button> #}
+        </form>
+    </div>
+
     {% if new_matches %}
     <section class="new-matches">
         <h2>New Matches</h2>
@@ -35,11 +49,13 @@
     </section>
     {% endif %}
 
-    <section class="all-matches">
-        <h2>All Matches</h2>
-        {% if all_matches %}
-            <div class="matches-grid">
-                {% for match in all_matches %}
+    {# This section will be populated by JavaScript if it's a discovery page #}
+    <section class="profile-discovery-section"> 
+        <h2>Profiles Near You</h2>
+        <div class="matches-grid" id="profilesGrid"> {# Added ID for JS targeting #}
+            {# If you still want to show existing matches on this page, keep the loop below #}
+            {# Otherwise, this part will be dynamically filled by JS #}
+            {% for match in all_matches %} {# This loop is for existing matches #}
                     <div class="match-card">
                         {# Consider a fallback image if main_image is not available #}
                         <div class="match-photo" style="background-image: url('{% if match.profile.main_image %}{{ match.profile.main_image.url }}{% else %}{% static 'images/default_avatar.png' %}{% endif %}')">
@@ -54,6 +70,9 @@
                         </div>
                         <div class="match-info">
                             <h3>{{ match.profile.user.first_name }}, {{ match.profile.age }}</h3>
+                            {# Distance will be added here by JavaScript for discovered profiles #}
+                            {# For existing matches, distance might not be relevant unless you calculate it #}
+
                             <p class="match-location">
                                 <i class="fas fa-map-marker-alt"></i> {{ match.profile.get_location_display|default:"Location not set" }} {# Assuming a method to display location nicely #}
                             </p>
@@ -69,13 +88,13 @@
                     </div>
                 {% endfor %}
             </div>
-        {% else %}
+        {% if not all_matches %} {# Show this only if there are no existing matches AND no discovered profiles (JS will handle the latter) #}
             <div class="no-matches">
                 <p>You don't have any matches yet. Keep swiping to find someone!</p>
                 <a href="{% url 'home' %}" class="btn primary-btn">Find Matches</a>
             </div>
         {% endif %}
-    </section>
+    </section> 
 </div>
 
 <!-- Unmatch Confirmation Modal -->

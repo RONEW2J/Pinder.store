@@ -8,7 +8,7 @@ from .models import Profile, Interest, Photo # Added Photo
 from apps.actions.models import Swipe # For filtering based on swipes
 from apps.matches.models import Match # For filtering based on matches
 from .serializers import ProfileSerializer, InterestSerializer, PhotoSerializer # Added PhotoSerializer
-from .forms import ProfileEditForm 
+from .forms import ProfileEditForm, PhotoUploadForm
 
 from django.contrib.gis.geos import Point
 from django.contrib.gis.measure import D # Distance object
@@ -150,10 +150,47 @@ def profile_edit_view(request):
 
     if request.method == 'POST':
         form = ProfileEditForm(request.POST, request.FILES, instance=profile)
+        print(f"Form submitted. POST data: {request.POST}")
         if form.is_valid():
-            form.save()
+            print(f"Form is valid. Cleaned data: {form.cleaned_data}") # DEBUG
+            updated_profile = form.save(commit=False)
+            print(f"Bio from form before location: {updated_profile.bio}") # DEBUG
+            # Save the main form data (age, bio, interests)
+            updated_profile = form.save(commit=False) # <--- commit=False is key here
+
+            # Handle location from latitude and longitude fields
+            latitude = form.cleaned_data.get('latitude')
+            longitude = form.cleaned_data.get('longitude')
+
+            if latitude is not None and longitude is not None:
+                updated_profile.location = Point(longitude, latitude, srid=4326) 
+            else:
+                updated_profile.location = None 
+
+            updated_profile.save() # <--- This saves age, bio, and location
+            # Important: If using ModelMultipleChoiceField for interests, save_m2m is needed after main save
+            print(f"Profile saved. Bio in DB should be: {Profile.objects.get(pk=profile.pk).bio}") # DEBUG
+            form.save_m2m() # <--- This saves interests
             messages.success(request, 'Your profile has been updated successfully!')
             return redirect('profiles:profile-display')
     else:
         form = ProfileEditForm(instance=profile)
     return render(request, 'profiles/profile_edit_form.html', {'form': form, 'profile': profile})
+
+@login_required
+def photo_upload_view(request):
+    profile = request.user.profile # Assuming profile exists
+    if request.method == 'POST':
+        form = PhotoUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            photo = form.save(commit=False)
+            photo.profile = profile
+            photo.save()
+            # Handle 'is_profile_picture' logic if added to form:
+            # If photo.is_profile_picture is True, ensure other photos for this profile are not.
+            # Photo.objects.filter(profile=profile).exclude(pk=photo.pk).update(is_profile_picture=False)
+            messages.success(request, 'Photo uploaded successfully!')
+            return redirect('profiles:profile-display') # Redirect to view profile
+    else:
+        form = PhotoUploadForm()
+    return render(request, 'profiles/photo_upload_form.html', {'form': form})

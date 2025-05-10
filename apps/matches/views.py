@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from django.db.models import Q
 from .models import Match, Conversation, Message
 from .serializers import MatchSerializer, ConversationSerializer, MessageSerializer
+from django.shortcuts import render #
 from django.contrib.auth.decorators import login_required
 
 # Create your views here.

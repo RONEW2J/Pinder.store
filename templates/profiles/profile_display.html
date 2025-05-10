@@ -31,6 +31,9 @@
         <p>No photos uploaded.</p>
     {% endfor %}
 
+    <br>
+        <a href="{% url 'profiles:photo-upload' %}" class="btn">Upload New Photo</a>
+    <br><br>
     {# Add a link to edit profile if this is the logged-in user's profile #}
     {% if request.user == profile.user %}
         <a href="{% url 'profiles:profile-edit' %}" class="btn">Edit Profile</a> {# Assuming you have an edit profile URL #}

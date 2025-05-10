@@ -20,6 +20,9 @@ class Profile(models.Model):
     age = models.PositiveIntegerField(null=True, blank=True) # Consider if age can be optional initially
     location = gis_models.PointField(geography=True, null=True, blank=True)  # GeoDjango - ensure PostGIS setup if using this
     interests = models.ManyToManyField('Interest', blank=True)
+    bio = models.TextField(blank=True, null=True) 
+    location = gis_models.PointField(geography=True, null=True, blank=True)
+    interests = models.ManyToManyField('Interest', blank=True)
 
 class Interest(models.Model): # You'll need to define the Interest model
     name = models.CharField(max_length=100, unique=True)

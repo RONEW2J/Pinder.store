@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Upload Photo{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/auth.css' %}"> {# Reusing auth.css for similar form styling #}
+{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h1>Upload a New Photo</h1>
+        </div>
+
+        <form method="post" enctype="multipart/form-data" class="auth-form">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn primary-btn full-width">Upload Photo</button>
+        </form>
+        <div class="auth-footer" style="margin-top: 15px;">
+            <a href="{% url 'profiles:profile-display' %}">Back to Profile</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

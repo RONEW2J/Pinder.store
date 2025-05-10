@@ -22,12 +22,49 @@
 
         <form method="post" enctype="multipart/form-data" class="auth-form">
             {% csrf_token %}
-            {{ form.as_p }}
+            {# Render non-location fields first #}
+            {% for field in form %}
+                {% if field.name != 'latitude' and field.name != 'longitude' %}
+                    <div class="form-group"> {# Your CSS class for styling a form field group #}
+                        {{ field.label_tag }}
+                        {{ field }}
+                        {% if field.help_text %}
+                            <small class="form-text text-muted">{{ field.help_text }}</small>
+                        {% endif %}
+                        {% for error in field.errors %}
+                            <div class="errorlist"> {# Your CSS class for field errors #}
+                                {{ error }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endfor %}
+
+            {# Location Section #}
+            <fieldset style="margin-top: 20px; margin-bottom: 20px; padding: 15px; border: 1px solid #eee; border-radius: 6px;">
+                <legend style="font-size: 1.1em; font-weight: bold; margin-bottom: 10px;">Location</legend>
+                <button type="button" id="updateLocationBtn" class="btn secondary-btn" style="margin-bottom: 15px;">Use My Current Location</button>
+                
+                <div class="form-group">
+                    <label for="id_latitude">Latitude</label>
+                    <input type="number" step="any" name="latitude" id="id_latitude" value="{{ form.initial.latitude|default_if_none:'' }}" class="form-control">
+                    {% if form.latitude.help_text %}<small class="form-text text-muted">{{ form.latitude.help_text }}</small>{% endif %}
+                    {% for error in form.latitude.errors %}<div class="errorlist">{{ error }}</div>{% endfor %}
+                </div>
+                <div class="form-group">
+                    <label for="id_longitude">Longitude</label>
+                    <input type="number" step="any" name="longitude" id="id_longitude" value="{{ form.initial.longitude|default_if_none:'' }}" class="form-control">
+                    {% if form.longitude.help_text %}<small class="form-text text-muted">{{ form.longitude.help_text }}</small>{% endif %}
+                    {% for error in form.longitude.errors %}<div class="errorlist">{{ error }}</div>{% endfor %}
+                </div>
+            </fieldset>
+
             <button type="submit" class="btn primary-btn full-width">Save Changes</button>
         </form>
+
         <div class="auth-footer" style="margin-top: 15px;">
             <a href="{% url 'profiles:profile-display' %}">Cancel and View Profile</a>
-        </div>
-    </div>
-</div>
-{% endblock %}
+                        </div>
+     </div>
+ </div>
+ {% endblock %}

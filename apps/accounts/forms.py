@@ -29,16 +29,9 @@ class CustomUserCreationForm(UserCreationForm):
 
     class Meta(UserCreationForm.Meta):
         model = User
-        # UserCreationForm.Meta.fields typically includes 'username' and password fields.
-        # We add our custom fields to this tuple.
-        fields = UserCreationForm.Meta.fields + (
-            'first_name', 'last_name', 'email',
-            'birth_date', 'gender', 'interested_in',
+        # Explicitly list all fields for clarity.
+        # UserCreationForm handles password1 and password2 fields.
+        fields = (
+            'username', 'email', 'first_name', 'last_name',
+            'birth_date', 'gender', 'interested_in'
         )
-        # Example of explicitly setting all fields if UserCreationForm.Meta.fields is not suitable:
-        # fields = ('username', 'email', 'first_name', 'last_name', 'birth_date', 'gender', 'interested_in', 'password2', 'password2')
-
-        # If your User model doesn't use 'username', you might need to adjust UserCreationForm.Meta.fields
-        # or ensure 'username' is also in the tuple above if it's required.
-        # For example, if email is the username field, UserCreationForm needs to be customized more deeply
-        # or you'd use a different base form.

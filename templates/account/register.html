@@ -52,12 +52,25 @@
                 </div>
             </div>
             
+            
             <div class="form-group">
                 <label for="{{ form.email.id_for_label }}">Email</label>
                 {{ form.email }}
                 {% if form.email.errors %}
                     <div class="field-errors">
                         {% for error in form.email.errors %}
+                            <p class="error">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.username.id_for_label }}">Username</label>
+                {{ form.username }}
+                {% if form.username.errors %}
+                    <div class="field-errors">
+                        {% for error in form.username.errors %}
                             <p class="error">{{ error }}</p>
                         {% endfor %}
                     </div>

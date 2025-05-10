@@ -62,10 +62,14 @@ def register_view(request): # Corrected: This should be a standalone function
             # If you've added fields to CustomUserCreationForm that belong to the Profile model (e.g., 'age'),
             # you can update the user's profile here.
             age_data = form.cleaned_data.get('age')
-            if age_data is not None and hasattr(user, 'profile'): # Check if profile exists (signal should ensure this)
+            # Ensure profile exists before trying to access it. The signal should create it.
+            # A more robust check might be to try/except Profile.DoesNotExist if the signal could fail or be delayed.
+            profile_exists = hasattr(user, 'profile') 
+            if age_data is not None and profile_exists: 
                 user.profile.age = age_data
                 user.profile.save()
-            login(request, user) # Optionally log the user in directly
+            # Specify the backend when logging in, as multiple are configured
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
             messages.success(request, "Registration successful. Welcome!")
             return redirect('home') # Or to a profile setup page
         else:
