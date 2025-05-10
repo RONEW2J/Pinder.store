@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Privacy Policy | Tinder Clone{% endblock %}
+
+{% block extra_css %}
+    {# <link rel="stylesheet" href="{% static 'css/legal.css' %}"> #}
+{% endblock %}
+
+{% block content %}
+<div class="container legal-page-container" style="padding: 20px; max-width: 800px; margin: 20px auto; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+    <h1>Privacy Policy</h1>
+    <p>Last updated: {% now "F j, Y" %}</p>
+
+    <p>Your privacy is important to us. It is Tinder Clone's policy to respect your privacy regarding any information we may collect from you across our application.</p>
+    <p>We only ask for personal information when we truly need it to provide a service to you. We collect it by fair and lawful means, with your knowledge and consent. We also let you know why we’re collecting it and how it will be used.</p>
+    
+    <p>[... Add your full Privacy Policy content here ...]</p>
+
+    <h2>Contact Us</h2>
+    <p>If you have any questions about this Privacy Policy, please contact us.</p>
+</div>
+{% endblock %}

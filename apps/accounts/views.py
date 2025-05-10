@@ -6,7 +6,9 @@ from .serializers import UserRegisterSerializer, UserProfileSerializer
 from django.contrib.auth import get_user_model
 from django.contrib import messages
 from django.contrib.auth import login, authenticate, logout as auth_logout
-from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.contrib.auth.forms import AuthenticationForm # UserCreationForm removed from here
+from .forms import CustomUserCreationForm # Import your custom form
+
 User = get_user_model()
 
 class RegisterView(generics.CreateAPIView):
@@ -48,11 +50,21 @@ def login_view(request):
         form = AuthenticationForm()
     return render(request, 'account/login.html', {'form': form})
 
-def register_view(request):
+def register_view(request): # Corrected: This should be a standalone function
     if request.method == 'POST':
-        form = UserCreationForm(request.POST)
+        form = CustomUserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
+            # The Profile instance is automatically created by a signal (see apps.profiles.signals.py).
+            # Fields like 'birth_date', 'gender', 'interested_in' are on the User model itself
+            # and are handled by form.save() because CustomUserCreationForm is based on the User model.
+
+            # If you've added fields to CustomUserCreationForm that belong to the Profile model (e.g., 'age'),
+            # you can update the user's profile here.
+            age_data = form.cleaned_data.get('age')
+            if age_data is not None and hasattr(user, 'profile'): # Check if profile exists (signal should ensure this)
+                user.profile.age = age_data
+                user.profile.save()
             login(request, user) # Optionally log the user in directly
             messages.success(request, "Registration successful. Welcome!")
             return redirect('home') # Or to a profile setup page
@@ -62,7 +74,7 @@ def register_view(request):
                 for error in errors:
                     messages.error(request, f"{field.capitalize()}: {error}")
     else:
-        form = UserCreationForm()
+        form = CustomUserCreationForm()
     return render(request, 'account/register.html', {'form': form})
 
 def logout_view(request):

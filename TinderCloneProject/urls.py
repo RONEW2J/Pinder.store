@@ -23,7 +23,7 @@ from django.conf.urls.static import static
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
-from .views import home_view
+from .views import home_view, terms_view, privacy_view # Import terms_view and privacy_view
 from django.views.generic import RedirectView # Import RedirectView
 
 
@@ -49,6 +49,8 @@ urlpatterns = [
     path('social-auth/', include('social_django.urls', namespace='social')), # For python-social-auth
     path('profiles/', include('apps.profiles.urls', namespace='profiles')), # For your custom profile UI and API
     path('api/matches/', include('apps.matches.urls', namespace='matches_ui')),
+    path('terms/', terms_view, name='terms'),
+    path('privacy/', privacy_view, name='privacy'),
     path('api/notifications/', include('apps.notifications.urls')),
     path('api/actions/', include('apps.actions.urls')),
     path('swagger<format>/', schema_view.without_ui(cache_timeout=0), name='schema-json'),

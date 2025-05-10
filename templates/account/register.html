@@ -139,15 +139,12 @@
                     <a href="{% url 'social:begin' 'google-oauth2' %}" class="btn social-btn google-btn">
                         <i class="fab fa-google"></i> Google
                     </a>
-                    <a href="{% url 'social:begin' 'facebook' %}" class="btn social-btn facebook-btn">
-                        <i class="fab fa-facebook-f"></i> Facebook
-                    </a>
                 </div>
             </div>
         </form>
         
         <div class="auth-footer">
-            <p>Already have an account? <a href="{% url 'login' %}">Log in</a></p>
+            <p>Already have an account? <a href="{% url 'accounts:login_page' %}">Log in</a></p>
         </div>
     </div>
 </div>
