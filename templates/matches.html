@@ -17,9 +17,10 @@
         <div class="matches-grid">
             {% for match in new_matches %}
                 <div class="match-card new">
-                    <div class="match-photo" style="background-image: url('{{ match.profile.main_image.url }}')">
+                    {# Consider a fallback image if main_image is not available #}
+                    <div class="match-photo" style="background-image: url('{% if match.profile.main_image %}{{ match.profile.main_image.url }}{% else %}{% static 'images/default_avatar.jpg' %}{% endif %}')">
                         <div class="match-actions">
-                            <a href="{% url 'create_conversation' match.profile.id %}" class="btn message-btn">
+                            <a href="{% url 'matches_ui:create_conversation' match.profile.user.id %}" class="btn message-btn"> {# Assuming create_conversation takes user_id #}
                                 <i class="fas fa-comment"></i> Message
                             </a>
                         </div>
@@ -40,12 +41,13 @@
             <div class="matches-grid">
                 {% for match in all_matches %}
                     <div class="match-card">
-                        <div class="match-photo" style="background-image: url('{{ match.profile.main_image.url }}')">
+                        {# Consider a fallback image if main_image is not available #}
+                        <div class="match-photo" style="background-image: url('{% if match.profile.main_image %}{{ match.profile.main_image.url }}{% else %}{% static 'images/default_avatar.png' %}{% endif %}')">
                             <div class="match-actions">
-                                <a href="{% url 'create_conversation' match.profile.id %}" class="btn message-btn">
+                                <a href="{% url 'matches_ui:create_conversation' match.profile.user.id %}" class="btn message-btn"> {# Assuming create_conversation takes user_id #}
                                     <i class="fas fa-comment"></i> Message
                                 </a>
-                                <button class="btn unmatch-btn" data-profile-id="{{ match.profile.id }}">
+                                <button class="btn unmatch-btn" data-user-id="{{ match.profile.user.id }}"> {# Changed to user-id for consistency if API expects user_id #}
                                     <i class="fas fa-times"></i> Unmatch
                                 </button>
                             </div>
@@ -53,10 +55,10 @@
                         <div class="match-info">
                             <h3>{{ match.profile.user.first_name }}, {{ match.profile.age }}</h3>
                             <p class="match-location">
-                                <i class="fas fa-map-marker-alt"></i> {{ match.profile.location }}
+                                <i class="fas fa-map-marker-alt"></i> {{ match.profile.get_location_display|default:"Location not set" }} {# Assuming a method to display location nicely #}
                             </p>
                             {% if match.conversation %}
-                                <a href="{% url 'conversation' match.conversation.id %}" class="view-conversation">
+                                <a href="{% url 'matches_ui:chat-page' conversation_id=match.conversation.id %}" class="view-conversation">
                                     View Conversation
                                     {% if match.conversation.unread_count > 0 %}
                                         <span class="unread-badge">{{ match.conversation.unread_count }}</span>
@@ -87,6 +89,7 @@
         </div>
     </div>
 </div>
+{% csrf_token %} {# Add CSRF token if matches.js makes POST requests for unmatch #}
 {% endblock %}
 
 {% block extra_js %}
