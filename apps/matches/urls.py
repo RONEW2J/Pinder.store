@@ -17,5 +17,5 @@ urlpatterns = [
     path('chat/', views.chat_view, name='chat-page'),
     path('chat/<int:conversation_id>/', views.chat_detail_view, name='chat-page'),
     path('send-message/<int:conversation_id>/', views.send_message_view, name='send-message'),
-    path('conversations/create/<int:target_user_id>/', views.create_or_get_conversation_view, name='create-conversation'),
+    path('conversations/create/<int:target_user_id>/', views.create_or_get_conversation_view, name='create_conversation'),
 ]

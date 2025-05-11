@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'oauth2_provider',
     'social_django',
     'django_extensions',
+    'channels',
     
     # Local apps
     'apps.accounts.apps.AccountsConfig',

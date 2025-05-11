@@ -51,6 +51,21 @@
         border-radius: 5px;
         font-family: monospace;
     }
+    .slideshow-container {
+        position: relative;
+        /* max-width: 400px; /* Adjust as needed */
+        margin: auto;
+        overflow: hidden; /* Important for slideshow effect */
+    }
+    .discovery-slide {
+        display: none; /* Initially hide all slides */
+        /* Ensure cards take up space if needed, or JS will handle display */
+    }
+    .discovery-slide.active {
+        display: block; /* Show active slide */
+    }
+    /* Basic styling for Next/Prev buttons */
+    .slideshow-controls { text-align: center; margin-top: 10px; }
 </style>
 {% endblock %}
 
@@ -85,58 +100,102 @@
 
     <section class="profile-discovery-section">
         <h2>Profiles Near You</h2>
-        <div class="matches-grid" id="profilesGrid">
+        <div class="slideshow-container" id="profilesSlideshow">
             {% if user.is_authenticated %}
-                {% if all_matches %}
-                    {% for item_dict in all_matches %}
-                        {% with match_obj=item_dict.match_object other_user_profile=item_dict.other_user_profile %}
-                            <div class="match-card" data-profile-id="{{ other_user_profile.user.id }}">
-                                <div class="match-photo" style="background-image: url('{% if other_user_profile.main_image %}{{ other_user_profile.main_image.url }}{% else %}{% static 'images/default_avatar.png' %}{% endif %}')">
-                                    <div class="match-actions">
-                                        <a href="{% url 'matches:create-conversation' other_user_profile.user.id %}" class="btn message-btn">
-                                            <i class="fas fa-comment"></i> Message
-                                        </a>
-                                        <button class="btn unmatch-btn" data-user-id="{{ other_user_profile.user.id }}">
-                                            <i class="fas fa-times"></i> Unmatch
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="match-info">
-                                    <h3>{{ other_user_profile.user.first_name }}, {{ other_user_profile.age }}</h3>
-                                    <p class="match-location">
-                                        <i class="fas fa-map-marker-alt"></i> 
-                                        {% if other_user_profile.city %}
-                                            {{ other_user_profile.city.name }}
-                                        {% else %}
-                                            City not set
-                                        {% endif %}
-                                    </p>
-                                    {% if match_obj.conversation and match_obj.conversation.id %}
-                                        <a href="{% url 'matches:chat-page' match_obj.conversation.id %}" class="view-conversation">
-                                            View Conversation
-                                            {% if match_obj.conversation.unread_count > 0 %}
-                                                <span class="unread-badge">{{ match_obj.conversation.unread_count }}</span>
-                                            {% endif %}
-                                        </a>
-                                    {% endif %}
+                {% if discovery_profiles %}
+                    {% for profile in discovery_profiles %}
+                        <div class="discovery-slide match-card" data-profile-id="{{ profile.user.id }}">
+                            <div class="match-photo" style="background-image: url('{% if profile.main_image %}{{ profile.main_image.url }}{% else %}{% static 'images/default_avatar.png' %}{% endif %}')">
+                                <!-- Actions for discovery profiles will be different, e.g., Like/Pass -->
+                                <div class="match-actions">
+                                    <button class="btn pass-btn" data-user-id="{{ profile.user.id }}" title="Pass">
+                                        <i class="fas fa-times fa-2x"></i>
+                                    </button>
+                                    <button class="btn like-btn" data-user-id="{{ profile.user.id }}" title="Like">
+                                        <i class="fas fa-heart fa-2x"></i>
+                                    </button>
+                                    {# Maybe a super-like or view profile details button #}
                                 </div>
                             </div>
-                        {% endwith %}
+                            <div class="match-info">
+                                <h3>{{ profile.user.first_name|default:profile.user.username }}, {{ profile.age }}</h3>
+                                <p class="match-location">
+                                    <i class="fas fa-map-marker-alt"></i> 
+                                    {% if profile.city %}
+                                        {{ profile.city.name }}
+                                    {% else %}
+                                        City not set
+                                    {% endif %}
+                                </p>
+                                {% if profile.bio %}
+                                    <p class="profile-bio">{{ profile.bio|truncatewords:15 }}</p>
+                                {% endif %}
+                                <!-- You can add common interests here later -->
+                            </div>
+                        </div>
                     {% endfor %}
+                    <div class="slideshow-controls">
+                        <button id="prevProfile" class="btn"><i class="fas fa-chevron-left"></i> Previous</button>
+                        <button id="nextProfile" class="btn"><i class="fas fa-chevron-right"></i> Next</button>
+                    </div>
                 {% else %}
                     <div class="no-matches">
-                        <p>You don't have any matches yet. Keep swiping to find someone!</p>
-                        <a href="{% url 'matches:matches-list-discover' %}" class="btn primary-btn">Find Matches</a>
+                        <p>No new profiles to discover right now. Try adjusting your filters or check back later!</p>
                     </div>
                 {% endif %}
             {% else %}
                 <div class="auth-prompt">
                     <p>Please log in to view profiles.</p>
-                    <a href="{% url 'login' %}" class="btn primary-btn">Login</a>
+                    <a href="{% url 'accounts:login_page' %}" class="btn primary-btn">Login</a>
                 </div>
             {% endif %}
         </div>
     </section>
+
+    <hr>
+    <h2>Your Existing Matches</h2>
+    <div class="matches-grid">
+        {% for item_dict in all_matches %}
+            {% with match_obj=item_dict.match_object other_user_profile=item_dict.other_user_profile %}
+                {# This is your original match card for existing matches #}
+                <div class="match-card" data-profile-id="{{ other_user_profile.user.id }}">
+                    <div class="match-photo" style="background-image: url('{% if other_user_profile.main_image %}{{ other_user_profile.main_image.url }}{% else %}{% static 'images/default_avatar.png' %}{% endif %}')">
+                        <div class="match-actions">
+                            <a href="{% url 'matches:create_conversation' other_user_profile.user.id %}" class="btn message-btn">
+                                <i class="fas fa-comment"></i> Message
+                            </a>
+                            <button class="btn unmatch-btn" data-user-id="{{ other_user_profile.user.id }}">
+                                <i class="fas fa-times"></i> Unmatch
+                            </button>
+                        </div>
+                    </div>
+                    <div class="match-info">
+                        <h3>{{ other_user_profile.user.first_name }}, {{ other_user_profile.age }}</h3>
+                        <p class="match-location">
+                            <i class="fas fa-map-marker-alt"></i> 
+                            {% if other_user_profile.city %}
+                                {{ other_user_profile.city.name }}
+                            {% else %}
+                                City not set
+                            {% endif %}
+                        </p>
+                        {% if match_obj.conversation and match_obj.conversation.id %}
+                            <a href="{% url 'matches:chat-page' match_obj.conversation.id %}" class="view-conversation">
+                                View Conversation
+                                {% if match_obj.conversation.unread_count > 0 %}
+                                    <span class="unread-badge">{{ match_obj.conversation.unread_count }}</span>
+                                {% endif %}
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endwith %}
+        {% empty %}
+            <div class="no-matches">
+                <p>You don't have any existing matches yet.</p>
+            </div>
+        {% endfor %}
+    </div>
 </div>
 
 <!-- Unmatch Modal remains the same -->

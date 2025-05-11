@@ -6,14 +6,11 @@ import apps.matches.routing # Or wherever your top-level routing for websockets 
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'TinderCloneProject.settings')
 
-# Get the default Django ASGI application
-django_asgi_app = get_asgi_application()
-
 application = ProtocolTypeRouter({
-    "http": django_asgi_app,
+    "http": get_asgi_application(),
     "websocket": AuthMiddlewareStack(
         URLRouter(
-            apps.matches.routing.websocket_urlpatterns # Point to your app's routing
+            apps.matches.routing.websocket_urlpatterns
         )
     ),
 })

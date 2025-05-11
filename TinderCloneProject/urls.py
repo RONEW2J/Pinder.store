@@ -15,7 +15,8 @@ urlpatterns = [
     path('profiles/', include('apps.profiles.urls', namespace='profiles')),
     path('api/v1/profiles/', include('apps.profiles.urls_api', namespace='profiles_api')),
     path('api/matches/', include('apps.matches.urls', namespace='matches')),
-
+    path('social-auth/', include('social_django.urls', namespace='social')),
+    
     path('terms/', terms_view, name='terms'),
     path('privacy/', privacy_view, name='privacy'),
 
