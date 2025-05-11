@@ -13,9 +13,6 @@ from .serializers import ProfileSerializer, InterestSerializer, PhotoSerializer 
 from .forms import ProfileEditForm, PhotoUploadForm
 
 # GeoDjango imports are no longer needed for profile editing if using city
-# from django.contrib.gis.geos import Point
-# from django.contrib.gis.measure import D # Distance object
-# from django.contrib.gis.db.models.functions import Distance as DistanceFunc
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponseForbidden, HttpResponseNotFound

@@ -334,15 +334,14 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = [
 # ACCOUNT_AUTHENTICATION_METHOD = 'email' # Deprecated
 
 # New settings to replace deprecated ones:
-ACCOUNT_LOGIN_METHODS = {'username', 'email'}  # Users can log in using username OR email.
+ACCOUNT_AUTHENTICATION_METHOD = 'username_email' # Allow login with username or email
+ACCOUNT_LOGIN_METHODS = {} # Not needed if ACCOUNT_AUTHENTICATION_METHOD is set comprehensively
 
-ACCOUNT_SIGNUP_FIELDS = ['username', 'email', 'password'] # Fields required for signup.
+ACCOUNT_SIGNUP_FIELDS = ['username', 'email'] # Define fields for the signup form. Password is implicitly handled.
 # Allauth handles password confirmation automatically if using its forms.
 
-# If your User model (from AbstractUser) has a username field but you don't want to use it:
-# ACCOUNT_USER_MODEL_USERNAME_FIELD = None # Remove or set to 'username'
 ACCOUNT_USER_MODEL_USERNAME_FIELD = 'username' # Explicitly tell allauth which field is the username
-ACCOUNT_USERNAME_REQUIRED = True        # Username is now required for signup
+ACCOUNT_USERNAME_REQUIRED = True        # Consistent with 'username' in ACCOUNT_SIGNUP_FIELDS
 
 
 ACCOUNT_EMAIL_VERIFICATION = 'optional' # Or 'mandatory' or 'none'
