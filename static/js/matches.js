@@ -1,18 +1,17 @@
 document.addEventListener('DOMContentLoaded', function () {
+    // Modal elements
     const unmatchModal = document.getElementById('unmatchModal');
     const cancelUnmatchButton = document.getElementById('cancelUnmatch');
     const confirmUnmatchButton = document.getElementById('confirmUnmatch');
-    const unmatchButtons = document.querySelectorAll('.unmatch-btn');
     let profileIdToUnmatch = null;
 
-    // Updated filter elements
-    const discoveryFilterForm = document.getElementById('discoveryFilterForm'); // The <form> element
-    const citySelect = document.getElementById('city'); // The <select> for cities
-    // Interest checkboxes will be handled by querying the form
+    // Profile discovery and filtering elements
+    const discoveryFilterForm = document.getElementById('discoveryFilterForm');
+    const citySelect = document.getElementById('city');
     const profilesGrid = document.getElementById('profilesGrid');
 
+    // --- Helper Functions ---
     function getCsrfToken() {
-        // A more robust way to get the CSRF token, especially if the input isn't always present
         const csrfInput = document.querySelector('input[name=csrfmiddlewaretoken]');
         if (csrfInput) {
             return csrfInput.value;
@@ -21,7 +20,13 @@ document.addEventListener('DOMContentLoaded', function () {
         return ''; // Fallback or handle error
     }
 
-    unmatchButtons.forEach(button => {
+    function getAuthToken() {
+        // Check both localStorage and sessionStorage for token
+        return localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+    }
+
+    // --- Event Listeners for Unmatch Buttons ---
+    document.querySelectorAll('.unmatch-btn').forEach(button => {
         button.addEventListener('click', function () {
             profileIdToUnmatch = this.dataset.profileId;
             if (unmatchModal) {
@@ -30,13 +35,14 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    // --- Profile Fetching and Display ---
     function fetchProfiles(cityId = '', interestIds = []) {
         if (!profilesGrid) {
             console.warn('Profiles grid not found on this page.');
             return;
         }
         
-        profilesGrid.innerHTML = '<p style="text-align:center; padding: 20px;">Loading profiles...</p>';
+        profilesGrid.innerHTML = '<p class="loading-message">Loading profiles...</p>';
 
         // Construct API URL with new filters
         const params = new URLSearchParams();
@@ -51,23 +57,37 @@ document.addEventListener('DOMContentLoaded', function () {
         const apiUrl = `/api/v1/profiles/all/${queryString ? '?' + queryString : ''}`;
         console.log('Fetching profiles from:', apiUrl);
 
+        const token = getAuthToken();
+        const headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        };
+
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        } else {
+            console.warn('No authentication token found for fetching profiles.');
+            profilesGrid.innerHTML = '<p class="error-message">Please log in to view profiles.</p>';
+            return Promise.reject('Unauthorized');
+        }
+
         fetch(apiUrl, {
             method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                // 'X-CSRFToken': getCsrfToken(), // CSRF token is not needed for GET requests
-                // Add Authorization header if your API requires it
-                // 'Authorization': `Bearer ${your_jwt_token}`
-            }
+            headers: headers
         })
         .then(response => {
+            if (response.status === 401) {
+                profilesGrid.innerHTML = '<p class="error-message">Session expired. Please log in again.</p>';
+                // Consider redirecting to login page
+                throw new Error('Unauthorized');
+            }
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             return response.json();
         })
         .then(data => {
-            profilesGrid.innerHTML = ''; // Clear previous profiles or loading message
+            profilesGrid.innerHTML = ''; // Clear loading message
             if (data.results && data.results.length > 0) {
                 const fragment = document.createDocumentFragment();
                 data.results.forEach(profileData => {
@@ -77,20 +97,19 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 });
                 profilesGrid.appendChild(fragment);
-                // Add event listeners for new like/pass buttons after they are added to the DOM
-                setupSwipeActionButtons();
             } else {
-                profilesGrid.innerHTML = '<p style="text-align:center; padding: 20px;">No new profiles found matching your criteria. Try adjusting your filters!</p>';
+                profilesGrid.innerHTML = '<p class="info-message">No profiles found matching your criteria. Try adjusting filters.</p>';
             }
         })
         .catch(error => {
             console.error('Error fetching profiles:', error);
-            profilesGrid.innerHTML = '<p style="text-align:center; padding: 20px;">Could not load profiles. Please try again later.</p>';
+            if (error.message !== 'Unauthorized') {
+                profilesGrid.innerHTML = '<p class="error-message">Could not load profiles. Please try again.</p>';
+            }
         });
     }
 
     function createProfileCard(profile) {
-        // Ensure profile.user is an object with expected properties
         const user = profile.user || {}; 
         const profilePhotoUrl = (profile.photos && profile.photos.length > 0 && profile.photos[0].image) 
                                 ? profile.photos[0].image 
@@ -98,10 +117,10 @@ document.addEventListener('DOMContentLoaded', function () {
         
         const cityText = profile.city && profile.city.name
                        ? `<p class="match-location"><i class="fas fa-map-marker-alt"></i> ${profile.city.name}</p>`
-                           : '';
+                       : '';
 
         const card = document.createElement('div');
-        card.className = 'match-card'; // Or your specific class for discovered profiles
+        card.className = 'match-card';
         card.innerHTML = `
             <div class="match-photo" style="background-image: url('${profilePhotoUrl}')">
                 <div class="match-actions">
@@ -111,47 +130,64 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
             <div class="match-info">
                 <h3>${user.first_name || user.username || 'User'}, ${profile.age || 'N/A'}</h3>
-                ${cityText} 
-                <!-- You can add interests here if desired -->
+                ${cityText}
+                ${profile.bio ? `<p class="match-bio">${profile.bio}</p>` : ''}
             </div>
         `;
         return card;
     }
 
-    function setupSwipeActionButtons() {
-        document.querySelectorAll('.like-btn, .pass-btn').forEach(button => {
-            // Remove existing event listeners to prevent duplicates if this function is called multiple times
-            const newButton = button.cloneNode(true);
-            button.parentNode.replaceChild(newButton, button);
+    // --- Event Delegation for Swipe Actions ---
+    if (profilesGrid) {
+        profilesGrid.addEventListener('click', function(event) {
+            const button = event.target.closest('.like-btn, .pass-btn');
+            if (!button) return;
 
-            newButton.addEventListener('click', function() {
-                const userId = this.dataset.userId;
-                const action = this.classList.contains('like-btn') ? 'like' : 'pass';
-                console.log(`${action} user ${userId}`);
-                // TODO: Implement API call for swipe action
-                // fetch(`/api/actions/swipe/`, {
-                //     method: 'POST',
-                //     headers: {
-                //         'Content-Type': 'application/json',
-                //         'X-CSRFToken': getCsrfToken(),
-                //     },
-                //     body: JSON.stringify({ target_user_id: userId, action: action })
-                // })
-                // .then(response => response.json())
-                // .then(data => {
-                //     console.log('Swipe action response:', data);
-                //     if (data.match_status) { // Or however your API indicates a new match
-                //         alert("It's a match!");
-                //     }
-                //     // Remove card from UI
-                //     this.closest('.match-card').remove();
-                // })
-                // .catch(error => console.error('Swipe action error:', error));
+            const userId = button.dataset.userId;
+            const action = button.classList.contains('like-btn') ? 'like' : 'pass';
+            console.log(`${action} user ${userId}`);
+
+            const token = getAuthToken();
+            const headers = {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            };
+            
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            } else {
+                alert('Please log in to perform this action');
+                return;
+            }
+
+            fetch(`/api/actions/swipe/`, {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify({ 
+                    target_user_id: userId, 
+                    action: action 
+                })
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Action failed');
+                return response.json();
+            })
+            .then(data => {
+                if (data.match) {
+                    // Show match notification
+                    alert(`It's a match with ${data.matched_user_name}!`);
+                }
+                // Remove the card
+                button.closest('.match-card').remove();
+            })
+            .catch(error => {
+                console.error('Swipe action error:', error);
+                alert('Action failed. Please try again.');
             });
         });
     }
 
-    // --- Filters for Profile Discovery (AJAX) ---
+    // --- Profile Discovery Filters ---
     if (discoveryFilterForm && profilesGrid) {
         discoveryFilterForm.addEventListener('submit', function(event) {
             event.preventDefault();
@@ -162,69 +198,72 @@ document.addEventListener('DOMContentLoaded', function () {
             
             fetchProfiles(selectedCityId, selectedInterestIds);
 
-            // Optional: Update URL query parameters without full page reload
+            // Update URL without reload
             const currentUrl = new URL(window.location);
-            currentUrl.searchParams.delete('city'); // Clear existing
+            currentUrl.searchParams.delete('city');
             if (selectedCityId) currentUrl.searchParams.set('city', selectedCityId);
-            currentUrl.searchParams.delete('interests'); // Clear existing
+            currentUrl.searchParams.delete('interests');
             selectedInterestIds.forEach(id => currentUrl.searchParams.append('interests', id));
             window.history.pushState({}, '', currentUrl.toString());
         });
 
-        // Initial fetch on page load using current URL parameters or defaults
+        // Initial fetch with URL params
         const initialUrlParams = new URLSearchParams(window.location.search);
         const initialCityId = initialUrlParams.get('city') || '';
         const initialInterestIds = initialUrlParams.getAll('interests') || [];
         fetchProfiles(initialCityId, initialInterestIds);
     }
 
+    // --- Unmatch Modal Logic ---
+    if (confirmUnmatchButton) {
+        confirmUnmatchButton.addEventListener('click', function () {
+            if (!profileIdToUnmatch) return;
+
+            const token = getAuthToken();
+            const headers = {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            };
+            
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            } else {
+                alert('Please log in to perform this action');
+                return;
+            }
+
+            fetch(`/api/matches/unmatch/${profileIdToUnmatch}/`, {
+                method: 'POST',
+                headers: headers
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Remove card or reload
+                    const card = document.querySelector(`[data-profile-id="${profileIdToUnmatch}"]`)?.closest('.match-card');
+                    if (card) card.remove();
+                    else window.location.reload();
+                } else {
+                    throw new Error('Unmatch failed');
+                }
+            })
+            .catch(error => {
+                console.error('Unmatch error:', error);
+                alert('Failed to unmatch. Please try again.');
+            })
+            .finally(() => {
+                if (unmatchModal) unmatchModal.style.display = 'none';
+                profileIdToUnmatch = null;
+            });
+        });
+    }
+
     if (cancelUnmatchButton) {
         cancelUnmatchButton.addEventListener('click', function () {
-            if (unmatchModal) {
-                unmatchModal.style.display = 'none';
-            }
+            if (unmatchModal) unmatchModal.style.display = 'none';
             profileIdToUnmatch = null;
         });
     }
 
-    if (confirmUnmatchButton) {
-        confirmUnmatchButton.addEventListener('click', function () {
-            if (profileIdToUnmatch) {
-                // Assuming profileIdToUnmatch is the ID of the *other user* or the *match object ID*
-                // Adjust endpoint and data based on your API
-                fetch(`/api/matches/unmatch/${profileIdToUnmatch}/`, { // Example endpoint
-                    method: 'POST', // Or DELETE, depending on your API design
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': getCsrfToken(),
-                    },
-                    // body: JSON.stringify({ profile_id: profileIdToUnmatch }) // If your API expects a body
-                })
-                .then(response => {
-                    if (response.ok) {
-                        // Successfully unmatched, remove the match card from the UI or reload
-                        console.log('Successfully unmatched with profile ID:', profileIdToUnmatch);
-                        // Example: Remove the card (you'll need to adjust selectors)
-                        // This selector might need to be more specific if profileIdToUnmatch is not a user_id
-                        const cardToRemove = document.querySelector(`.match-card button[data-user-id="${profileIdToUnmatch}"]`)?.closest('.match-card');
-                        if (cardToRemove) cardToRemove.remove();
-                        else window.location.reload(); // Fallback to reload if card not found for dynamic removal
-
-                    } else {
-                        response.json().then(err => console.error('Unmatch error details:', err)).catch(() => {});
-                        console.error('Failed to unmatch.');
-                        alert('Failed to unmatch. Please try again.');
-                    }
-                })
-                .finally(() => {
-                    if (unmatchModal) unmatchModal.style.display = 'none';
-                    profileIdToUnmatch = null;
-                });
-            }
-        });
-    }
-
-    // Close modal if clicked outside the content
     if (unmatchModal) {
         unmatchModal.addEventListener('click', function(event) {
             if (event.target === unmatchModal) {
@@ -233,6 +272,17 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
-    // Initial setup for any swipe buttons already on the page (if any, for existing matches)
-    // setupSwipeActionButtons();
+
+    // Add CSS for messages
+    const style = document.createElement('style');
+    style.textContent = `
+        .loading-message, .info-message, .error-message { 
+            text-align: center; 
+            padding: 20px; 
+            margin: 20px 0;
+        }
+        .error-message { color: #dc3545; }
+        .info-message { color: #17a2b8; }
+    `;
+    document.head.appendChild(style);
 });
