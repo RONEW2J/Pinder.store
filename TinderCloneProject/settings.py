@@ -28,20 +28,19 @@ env = environ.Env(
 )
 
 # Reading .env file if it exists (for local development)
-environ.Env.read_env(os.path.join(BASE_DIR, '.env.prod'))
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env('DJANGO_SECRET_KEY', default='your-default-secret-key-for-dev-only-change-me')
+SECRET_KEY = env('SECRET_KEY', default='your-default-secret-key-for-dev-only-change-me')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env('DEBUG')
 
 ALLOWED_HOSTS = env('ALLOWED_HOSTS')
 CSRF_TRUSTED_ORIGINS = env('CSRF_TRUSTED_ORIGINS') # For HTTPS
-
 
 # Application definition
 INSTALLED_APPS = [
@@ -173,7 +172,7 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'mediafiles' # For user-uploaded files during local development
 
 # Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
+# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-STATIC_ROOT 
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -349,3 +348,16 @@ ACCOUNT_USERNAME_REQUIRED = True        # Username is now required for signup
 ACCOUNT_EMAIL_VERIFICATION = 'optional' # Or 'mandatory' or 'none'
 LOGIN_REDIRECT_URL = 'profiles:profile-display' # Redirect to your custom profile display page
 ACCOUNT_LOGOUT_REDIRECT_URL = 'home' # Default redirect after logout
+
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {"class": "logging.StreamHandler"},
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO" if not DEBUG else "DEBUG",
+    },
+}
