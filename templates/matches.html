@@ -101,52 +101,39 @@
     <section class="profile-discovery-section">
         <h2>Profiles Near You</h2>
         <div class="slideshow-container" id="profilesSlideshow">
-            {% if user.is_authenticated %}
-                {% if discovery_profiles %}
-                    {% for profile in discovery_profiles %}
-                        <div class="discovery-slide match-card" data-profile-id="{{ profile.user.id }}">
-                            <div class="match-photo" style="background-image: url('{% if profile.main_image %}{{ profile.main_image.url }}{% else %}{% static 'images/default_avatar.png' %}{% endif %}')">
-                                <!-- Actions for discovery profiles will be different, e.g., Like/Pass -->
-                                <div class="match-actions">
-                                    <button class="btn pass-btn" data-user-id="{{ profile.user.id }}" title="Pass">
-                                        <i class="fas fa-times fa-2x"></i>
-                                    </button>
-                                    <button class="btn like-btn" data-user-id="{{ profile.user.id }}" title="Like">
-                                        <i class="fas fa-heart fa-2x"></i>
-                                    </button>
-                                    {# Maybe a super-like or view profile details button #}
-                                </div>
-                            </div>
-                            <div class="match-info">
-                                <h3>{{ profile.user.first_name|default:profile.user.username }}, {{ profile.age }}</h3>
-                                <p class="match-location">
-                                    <i class="fas fa-map-marker-alt"></i> 
-                                    {% if profile.city %}
-                                        {{ profile.city.name }}
-                                    {% else %}
-                                        City not set
-                                    {% endif %}
-                                </p>
-                                {% if profile.bio %}
-                                    <p class="profile-bio">{{ profile.bio|truncatewords:15 }}</p>
-                                {% endif %}
-                                <!-- You can add common interests here later -->
+            {% if discovery_profiles %}
+                {% for profile in discovery_profiles %}
+                    <div class="discovery-slide match-card" data-profile-id="{{ profile.user.id }}">
+                        <div class="match-photo" style="background-image: url('{% if profile.main_image %}{{ profile.main_image.url }}{% else %}{% static 'images/default_avatar.png' %}{% endif %}')">
+                            <div class="match-actions">
+                                <button class="btn pass-btn" data-user-id="{{ profile.user.id }}" title="Pass">
+                                    <i class="fas fa-times fa-2x"></i>
+                                </button>
+                                <button class="btn like-btn" data-user-id="{{ profile.user.id }}" title="Like">
+                                    <i class="fas fa-heart fa-2x"></i>
+                                </button>
                             </div>
                         </div>
-                    {% endfor %}
-                    <div class="slideshow-controls">
-                        <button id="prevProfile" class="btn"><i class="fas fa-chevron-left"></i> Previous</button>
-                        <button id="nextProfile" class="btn"><i class="fas fa-chevron-right"></i> Next</button>
+                        <div class="match-info">
+                            <h3>{{ profile.user.first_name }}, {{ profile.age }}</h3>
+                            <p class="match-location">
+                                <i class="fas fa-map-marker-alt"></i> 
+                                {% if profile.city %}{{ profile.city.name }}{% else %}Location not set{% endif %}
+                            </p>
+                            {% if profile.bio %}
+                                <p class="profile-bio">{{ profile.bio|truncatewords:15 }}</p>
+                            {% endif %}
+                        </div>
                     </div>
-                {% else %}
-                    <div class="no-matches">
-                        <p>No new profiles to discover right now. Try adjusting your filters or check back later!</p>
-                    </div>
-                {% endif %}
+                {% endfor %}
+                
+                <div class="slideshow-controls">
+                    <button id="prevProfile" class="btn"><i class="fas fa-chevron-left"></i> Previous</button>
+                    <button id="nextProfile" class="btn"><i class="fas fa-chevron-right"></i> Next</button>
+                </div>
             {% else %}
-                <div class="auth-prompt">
-                    <p>Please log in to view profiles.</p>
-                    <a href="{% url 'accounts:login_page' %}" class="btn primary-btn">Login</a>
+                <div class="no-matches">
+                    <p>No new profiles to discover right now. Try adjusting your filters or check back later!</p>
                 </div>
             {% endif %}
         </div>

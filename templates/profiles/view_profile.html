@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/profiles.css' %}">
+{% endblock %}
+
+{% block title %}{{ profile.user.username }}'s Profile{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <div class="profile-header">
+        <div class="profile-photo">
+            <img src="{% if profile.main_image %}{{ profile.main_image.url }}{% else %}{% static 'images/default_avatar.png' %}{% endif %}" 
+                 alt="{{ profile.user.username }}'s profile photo">
+        </div>
+        <div class="profile-info">
+            <h1>{{ profile.user.get_full_name|default:profile.user.username }}</h1>
+            <p class="age-location">
+                {% if profile.age %}{{ profile.age }} years old{% endif %}
+                {% if profile.city %} from {{ profile.city.name }}{% endif %}
+            </p>
+            
+            {% if profile.bio %}
+            <div class="bio-section">
+                <h3>About</h3>
+                <p>{{ profile.bio }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="profile-actions">
+        {% if match_obj.conversation and match_obj.conversation.id %}
+            <a href="{% url 'matches:chat-page' match_obj.conversation.id %}" class="view-conversation">
+                <i class="fas fa-comment"></i> Message
+            </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -20,6 +20,20 @@ class Profile(models.Model):
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     is_visible = models.BooleanField(default=True)
  
+    blocked_users = models.ManyToManyField(
+        'self',
+        symmetrical=False,
+        blank=True,
+        related_name='blocked_by'
+    )
+    
+    matches = models.ManyToManyField(
+        'self',
+        symmetrical=False,
+        blank=True,
+        related_name='matched_with'
+    )
+    
     @property
     def main_image(self):
         main_photo = self.photos.filter(is_profile_avatar=True).first()

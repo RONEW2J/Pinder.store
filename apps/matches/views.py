@@ -101,49 +101,42 @@ User = get_user_model()
 
 @login_required
 def list_matches_view(request):
-    user = request.user
-    matches_queryset = Match.objects.filter(
-        Q(user1=user) | Q(user2=user),
-        # is_active=True  # Uncomment if you have this field
-    ).select_related(
-        'user1__profile',
-        'user2__profile',
-        'conversation'
-    ).prefetch_related(
-        'user1__profile__photos',
-        'user2__profile__photos',
-        'conversation__messages'
-    ).order_by('-created_at')
+    # Get current user's profile
+    user_profile = request.user.profile
+    
+    # Get all matches for the current user
+    all_matches = Match.objects.filter(
+        Q(user1=request.user) | Q(user2=request.user)
+    ).select_related('user1__profile', 'user2__profile')
 
-    # Debug: Print raw matches data
-    print("All matches:", list(matches_queryset.values_list('user1__username', 'user2__username')))
-    print("Other profiles:", [p.user.username for p in Profile.objects.exclude(user=request.user)])
-
-    processed_matches = []
-    for match_obj in matches_queryset:
-        other_user = match_obj.user2 if match_obj.user1 == user else match_obj.user1
-        other_profile = getattr(other_user, 'profile', None)
-        
-        if settings.DEBUG:
-            debug_info = {
-                'match_id': match_obj.id,
-                'other_user': other_user.username if other_user else None,
-                'profile_exists': bool(other_profile),
-                'profile_user': other_profile.user.username if (other_profile and hasattr(other_profile, 'user')) else None
-            }
-            print("DEBUG Match Processing:", debug_info)
-
-        processed_matches.append({
-            'match_object': match_obj,
-            'other_user_profile': other_profile
+    
+    # Prepare match data for template
+    matches_data = []
+    for match in all_matches:
+        other_user = match.user2 if match.user1 == request.user else match.user1
+        matches_data.append({
+            'match_object': match,
+            'other_user_profile': other_user.profile
         })
-
+    
+    # Get discovery profiles (excluding matches and blocked users)
+    matched_user_ids = [match.user2.id if match.user1 == request.user else match.user1.id 
+                       for match in all_matches]
+    
+    discovery_profiles = Profile.objects.exclude(
+        user=request.user
+    ).exclude(
+        user__id__in=matched_user_ids
+    ).exclude(
+        id__in=user_profile.blocked_users.values_list('id', flat=True)
+    )
+    
     context = {
-        'all_matches': processed_matches,
-        'all_cities': City.objects.all().order_by('name'),
-        'all_interests': Interest.objects.all().order_by('name'),
-        'selected_interests': request.GET.getlist('interests'),
+        'all_matches': matches_data,
+        'discovery_profiles': discovery_profiles,  # This is the key fix
+        'user': request.user
     }
+    
     return render(request, 'matches.html', context)
 
 @login_required
@@ -249,3 +242,29 @@ def send_message_view(request, conversation_id):
             message.save()
             return JsonResponse({'status': 'success'})
     return JsonResponse({'status': 'error'}, status=400)
+
+def discover_profiles_view(request):
+    # Get current user's profile
+    user_profile = request.user.profile
+    
+    # Get IDs of users you've already matched with
+    matched_user_ids = user_profile.matches.values_list('id', flat=True)
+    
+    # Get IDs of users you've blocked or been blocked by
+    blocked_user_ids = user_profile.blocked_users.values_list('id', flat=True)
+    
+    # Get discovery profiles - exclude yourself, matches, and blocked users
+    discovery_profiles = Profile.objects.exclude(
+        user=request.user
+    ).exclude(
+        id__in=matched_user_ids
+    ).exclude(
+        id__in=blocked_user_ids
+    ).exclude(
+        # Add any other filters you need (distance, preferences, etc.)
+    )
+    
+    return render(request, 'matches.html', {
+        'discovery_profiles': discovery_profiles,
+        # other context data...
+    })
