@@ -27,13 +27,13 @@ env = environ.Env(
 )
 
 # Reading .env file if it exists (for local development)
-environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+environ.Env.read_env(os.path.join(BASE_DIR, '.env.prod'))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env('SECRET_KEY', default='your-default-secret-key-for-dev-only-change-me')
+SECRET_KEY = env('DJANGO_SECRET_KEY', default='your-default-secret-key-for-dev-only-change-me')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env('DEBUG')
@@ -238,15 +238,16 @@ SIMPLE_JWT = {
 
 AUTH_USER_MODEL = 'accounts.User'
 
-# Cache (Redis)
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [env('REDIS_URL', default="redis://127.0.0.1:6379/2")], # /2 for Channels
-        },
-    },
-}
+CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": "redis://127.0.0.1:6379/0", # Your Redis connection string
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+                # "PASSWORD": "your_redis_password", # If Redis requires authentication
+            }
+        }
+    }
 
 # Celery Configuration (using Redis as broker and backend)
 CELERY_BROKER_URL = env('CELERY_BROKER_URL', default=env('REDIS_URL', default="redis://127.0.0.1:6379/0")) # /0 for Celery

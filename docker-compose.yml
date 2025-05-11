@@ -1,0 +1,90 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:17
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5433:5432"  # changed local machine port to 5433, if 5432 is busy by bookr (dev)
+    env_file:
+      - .env.prod
+
+  web:
+    build: .
+    command: >
+      bash -c "python manage.py collectstatic --noinput &&
+               gunicorn bookr.wsgi:application --bind 0.0.0.0:8000"
+    volumes:
+      - .:/app
+      - static_volume:/app/static
+    depends_on:
+      - db
+      - minio
+    env_file:
+      - .env.prod
+
+  nginx:
+    image: nginx:stable-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - static_volume:/app/static
+    depends_on:
+      - web
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+    env_file:
+      - .env.prod
+
+  minio:
+    image: minio/minio
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+    env_file:
+      - .env.prod
+    command: server --console-address ":9001" /data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # Add a service to create the bucket on startup
+  createbuckets:
+    image: minio/mc
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      sleep 10;
+      /usr/bin/mc config host add myminio http://minio:9000 ${MINIO_ACCESS_KEY} ${MINIO_SECRET_KEY};
+      /usr/bin/mc mb --ignore-existing myminio/${MINIO_BUCKET_NAME};
+      /usr/bin/mc anonymous set download myminio/${MINIO_BUCKET_NAME};
+      /usr/bin/mc policy set public myminio/${MINIO_BUCKET_NAME};
+      exit 0;
+      "
+
+volumes:
+  postgres_data:
+  static_volume:
+  minio_data:

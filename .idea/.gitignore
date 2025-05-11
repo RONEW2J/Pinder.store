@@ -11,4 +11,7 @@ __pycache__/
 *.pyc
 venv/
 .idea/
+
+# Environment variables
 .env
+.env.*

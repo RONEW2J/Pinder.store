@@ -3,6 +3,8 @@ from rest_framework import generics, permissions, filters
 from django_filters.rest_framework import DjangoFilterBackend # Import DjangoFilterBackend
 from django.db.models import Q, Case, When, F, IntegerField
 from django.contrib import messages
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 
 from .models import Profile, Interest, Photo # Added Photo
 from apps.actions.models import Swipe # For filtering based on swipes
@@ -42,6 +44,7 @@ class InterestListCreateView(generics.ListCreateAPIView):
     serializer_class = InterestSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly] # Allow anyone to see, only auth to create
 
+@method_decorator(cache_page(60, key_prefix='profile_list'), name='list')
 class ProfileListView(generics.ListAPIView):
     serializer_class = ProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
