@@ -67,7 +67,12 @@ document.addEventListener('DOMContentLoaded', function () {
             headers['Authorization'] = `Bearer ${token}`;
         } else {
             console.warn('No authentication token found for fetching profiles.');
-            profilesGrid.innerHTML = '<p class="error-message">Please log in to view profiles.</p>';
+            // Display message and redirect to login page
+            if (profilesGrid) { // Check if profilesGrid exists before manipulating it
+                profilesGrid.innerHTML = '<p class="error-message">Please log in to view profiles. Redirecting to login...</p>';
+            }
+            // Assuming your login page is at '/accounts/login/' or similar
+            window.location.href = '/accounts/login/'; // Adjust this URL to your actual login page URL
             return Promise.reject('Unauthorized');
         }
 
@@ -78,8 +83,10 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(response => {
             if (response.status === 401) {
                 profilesGrid.innerHTML = '<p class="error-message">Session expired. Please log in again.</p>';
-                // Consider redirecting to login page
-                throw new Error('Unauthorized');
+                // Redirect to login page
+                // Assuming your login page is at '/accounts/login/' or similar
+                window.location.href = '/accounts/login/'; // Adjust this URL to your actual login page URL
+                throw new Error('Unauthorized: Session expired');
             }
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -103,7 +110,7 @@ document.addEventListener('DOMContentLoaded', function () {
         })
         .catch(error => {
             console.error('Error fetching profiles:', error);
-            if (error.message !== 'Unauthorized') {
+            if (!error.message.startsWith('Unauthorized')) { // Check if error message indicates an auth issue handled above
                 profilesGrid.innerHTML = '<p class="error-message">Could not load profiles. Please try again.</p>';
             }
         });

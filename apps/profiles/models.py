@@ -18,6 +18,7 @@ class Profile(models.Model):
     city = models.ForeignKey('City', on_delete=models.SET_NULL, null=True, blank=True)
     gender = models.CharField(max_length=10, choices=[('Male', 'Male'), ('Female', 'Female'), ('Other', 'Other')], null=True, blank=True)
     phone_number = models.CharField(max_length=20, blank=True, null=True)
+    is_visible = models.BooleanField(default=True)
  
     @property
     def main_image(self):

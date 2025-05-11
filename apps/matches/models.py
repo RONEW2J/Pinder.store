@@ -4,41 +4,46 @@ from django.utils.translation import gettext_lazy as _
 from django.db.models import Q, Count
 
 class Match(models.Model):
-    """Represents a mutual like between two users."""
-    # user1 is conventionally the user with the lower ID to ensure uniqueness of the pair
-    user1 = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='matches_as_user1')
-    user2 = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='matches_as_user2')
-    conversation = models.OneToOneField('Conversation', on_delete=models.SET_NULL, null=True, blank=True, related_name='match_initiator') # Or ForeignKey  
+    user1 = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='matches_as_user1', on_delete=models.CASCADE)
+    user2 = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='matches_as_user2', on_delete=models.CASCADE)
+    conversation = models.OneToOneField('Conversation', on_delete=models.SET_NULL, null=True, blank=True, related_name='match_record') # Added related_name for clarity
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        verbose_name = _('Match')
-        verbose_name_plural = _('Matches')
-        unique_together = ('user1', 'user2') # Ensures a pair can only match once
-        constraints = [
-            models.CheckConstraint(
-                check=Q(user1_id__lt=models.F('user2_id')),
-                name='user1_id_lt_user2_id_match'
-            )
-        ]
+        unique_together = ('user1', 'user2')
+        # The check constraint is likely defined in a migration, but this is where you'd add model-level constraints
+        # constraints = [
+        #     models.CheckConstraint(check=models.Q(user1_id__lt=models.F('user2_id')), name='user1_id_lt_user2_id_match_model')
+        # ]
+        verbose_name_plural = "Matches"
 
     def __str__(self):
         return f"Match between {self.user1.username} and {self.user2.username}"
 
+    def save(self, *args, **kwargs):
+        # Ensure user1.id is always less than user2.id
+        if self.user1_id > self.user2_id:
+            self.user1, self.user2 = self.user2, self.user1
+        super().save(*args, **kwargs)
+
     @classmethod
     def create_match_and_conversation(cls, user_a, user_b):
-        """
-        Creates a Match instance and its associated Conversation.
-        Ensures user1.id < user2.id for the Match.
-        Returns (match, conversation).
-        """
         u1, u2 = (user_a, user_b) if user_a.id < user_b.id else (user_b, user_a)
-        
-        match, match_created = cls.objects.get_or_create(user1=u1, user2=u2)
-        
-        # Get or create the conversation for these two users
+
+        # Получаем или создаем беседу
         conversation, conv_created = Conversation.get_or_create_for_users(u1, u2)
-        
+
+        # Получаем или создаем мэтч, связывая его с беседой
+        match, match_created = cls.objects.get_or_create(
+            user1=u1, user2=u2,
+            defaults={'conversation': conversation} # Связываем при создании
+        )
+
+        # Если мэтч уже существовал, но не был связан с беседой (маловероятно при такой логике, но для надежности)
+        if not match_created and not match.conversation:
+            match.conversation = conversation
+            match.save(update_fields=['conversation'])
+
         return match, conversation
 
 class Conversation(models.Model):

@@ -1,4 +1,3 @@
-# c:\Users\user\PycharmProjects\TinderCloneProject\apps\matches\apps.py
 from django.apps import AppConfig
 
 class MatchesConfig(AppConfig):

@@ -46,16 +46,17 @@ class ProfileListView(generics.ListAPIView):
     serializer_class = ProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    # Assuming 'interests' can be filtered by ID or name (e.g., interests__name=Music)
-    # 'gender' and 'bio' were removed as they are not on the current Profile model.
-    # Add them to the model if you intend to filter/search by them.
-    filterset_fields = ['interests', 'age'] # Example: ?age=25 or ?interests=1 (by ID)
-    search_fields = ['user__username', 'interests__name'] # Search by username or interest names
-    ordering_fields = ['age', 'user__date_joined', 'distance'] # Allow ordering by these, 'distance' if annotated
+    filterset_fields = ['interests', 'age'] 
+    search_fields = ['user__username', 'interests__name'] 
+    ordering_fields = ['age', 'user__date_joined', 'distance'] 
     
     def get_queryset(self):
         user = self.request.user
         queryset = Profile.objects.select_related('user').prefetch_related('interests', 'photos').exclude(user=user)
+        
+        # --- DEBUG PRINT START ---
+        print(f"User {user.username} - Initial discoverable profiles count: {queryset.count()}")
+        # --- DEBUG PRINT END ---
 
         # 1. Filter out users the current user has already swiped "PASS" on.
         passed_user_ids = Swipe.objects.filter(
@@ -64,49 +65,45 @@ class ProfileListView(generics.ListAPIView):
         ).values_list('swiped_user_id', flat=True)
         queryset = queryset.exclude(user_id__in=passed_user_ids)
 
+        # --- DEBUG PRINT START ---
+        print(f"User {user.username} - After PASS filter count: {queryset.count()}")
+        # --- DEBUG PRINT END ---
+
         # 2. Filter out users the current user has already matched with.
         matches_as_user1 = Match.objects.filter(user1=user).values_list('user2_id', flat=True)
         matches_as_user2 = Match.objects.filter(user2=user).values_list('user1_id', flat=True)
         all_matched_user_ids = set(list(matches_as_user1) + list(matches_as_user2))
         queryset = queryset.exclude(user_id__in=all_matched_user_ids)
 
+        # --- DEBUG PRINT START ---
+        print(f"User {user.username} - After MATCH filter count: {queryset.count()}")
+        # --- DEBUG PRINT END ---
+
         # 3. Filter by city and interests (if provided in query params)
-        # This replaces the GeoDjango proximity filter
         city_id = self.request.query_params.get('city')
         if city_id:
             queryset = queryset.filter(city_id=city_id)
+        
+        # --- DEBUG PRINT START ---
+        # Added this print statement to see the count after city filtering
+        print(f"User {user.username} - After CITY filter (city_id: {city_id}) count: {queryset.count()}")
+        # --- DEBUG PRINT END ---
 
-        interest_ids = self.request.query_params.getlist('interests') # getlist for multiple values
+        interest_ids = self.request.query_params.getlist('interests') 
         if interest_ids:
-            # Filter profiles that have at least one of the specified interests.
-            # If you need profiles that have ALL specified interests, you'd loop and chain filters.
             queryset = queryset.filter(interests__id__in=interest_ids).distinct()
 
-        # The old GeoDjango proximity filter is removed.
-        # If you still need radius-based filtering with cities, you'd need a more complex setup:
-        # 1. Store lat/lon on your City model.
-        # 2. Get the user's city's lat/lon.
-        # 3. Find cities within the radius of the user's city's lat/lon.
-        # 4. Filter profiles by those cities.
-        # This is significantly different from the previous PointField-based distance.
-        # For now, we assume filtering is by selected city and interests directly.
-
-        # Example of old GeoDjango proximity filter (REMOVED):
-        # try:
-        #     user_profile = user.profile
-        #     if user_profile.location: # This was the PointField
-        #         user_location = user_profile.location 
-                
-        #         search_radius_km_str = self.request.query_params.get('radius_km', '50')
-        #         # ... (rest of radius logic) ...
-        #         queryset = queryset.annotate(distance=DistanceFunc('location', user_location)) # ...
-        # except Profile.DoesNotExist:
-        #     pass 
-        # except AttributeError: 
-        #     pass
-
+        # --- DEBUG PRINT START ---
+        # Added this print statement to see the count after interest filtering
+        print(f"User {user.username} - After INTERESTS filter (ids: {interest_ids}) count: {queryset.count()}")
+        # --- DEBUG PRINT END ---
+        
+        # --- DEBUG PRINT START ---
+        # This was the final print statement suggested
+        print(f"User {user.username} - Final discoverable profiles count: {queryset.count()}")
+        # --- DEBUG PRINT END ---
         return queryset
-
+    
 # You'll need to create these views for photo management
 class PhotoListCreateView(generics.ListCreateAPIView):
     serializer_class = PhotoSerializer
