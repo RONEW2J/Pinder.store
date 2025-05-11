@@ -39,7 +39,8 @@ SECRET_KEY = env('SECRET_KEY', default='your-default-secret-key-for-dev-only-cha
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env('DEBUG')
 
-ALLOWED_HOSTS = env('ALLOWED_HOSTS')
+# In your settings.py
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.yourproductiondomain.com']
 CSRF_TRUSTED_ORIGINS = env('CSRF_TRUSTED_ORIGINS') # For HTTPS
 
 # Application definition
