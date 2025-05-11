@@ -14,6 +14,7 @@ from pathlib import Path
 import os
 import environ # Import django-environ
 from datetime import timedelta
+import dj_database_url # For database URL parsing
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -122,11 +123,9 @@ ASGI_APPLICATION = 'TinderCloneProject.asgi.application' # For Django Channels
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': env.db_url(
-        'DATABASE_URL',
-        default=f"postgres://postgres:db_pass25@localhost:5432/PinderDB" # Revert to standard PostgreSQL
-    )
+    'default': dj_database_url.parse(os.environ.get('DATABASE_URL'))
 }
+
 # Ensure standard PostgreSQL backend is used.
 DATABASES['default']['ENGINE'] = 'django.db.backends.postgresql'
 
@@ -278,20 +277,33 @@ SILKY_AUTHENTICATION = True  # Set to True if login is required to view Silk UI
 SILKY_AUTHORISATION = True  # Set to True if user needs to be staff to view Silk UI
 # SILKY_PERMISSIONS = lambda user: user.is_staff # Example permission
 
+
+USE_S3 = os.environ.get('USE_S3') == "True"
 # Cloud Storage (MinIO/S3) - Configure one of these if not using local media
-if env('USE_S3', cast=bool, default=False):
-    AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID')
-    AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY')
-    AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME')
-    AWS_S3_REGION_NAME = env('AWS_S3_REGION_NAME', default=None)
-    AWS_S3_ENDPOINT_URL = env('AWS_S3_ENDPOINT_URL', default=None) # For MinIO or other S3-compatible services
-    AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com' if not AWS_S3_ENDPOINT_URL else None
-    AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
-    AWS_DEFAULT_ACL = None # Or 'public-read' if your media files should be public
-    AWS_LOCATION = 'media' # Optional: subdirectory in your bucket for media files
+if USE_S3:
+    AWS_ACCESS_KEY_ID = os.environ.get('MINIO_ACCESS_KEY')
+    AWS_SECRET_ACCESS_KEY = os.environ.get('MINIO_SECRET_KEY')
+    AWS_STORAGE_BUCKET_NAME = os.environ.get('MINIO_BUCKET_NAME')
+
+    # Used by docker
+    AWS_S3_ENDPOINT_URL = f"http://{os.environ.get('MINIO_HOST', '9000')}:9000"
+    # Used by browser
+    AWS_S3_CUSTOM_DOMAIN = f"localhost:{os.environ.get('MINIO_PORT', '9000')}"
+    AWS_S3_OBJECT_PARAMETERS = {
+        'CacheControl': 'max-age=86400',
+    }
+
+    AWS_DEFAULT_ACL = None
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_S3_USE_SSL = False
+
     DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-    # STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage' # If you want to serve static files from S3 too
-    MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{AWS_LOCATION}/' if AWS_S3_CUSTOM_DOMAIN else f'{AWS_S3_ENDPOINT_URL}/{AWS_STORAGE_BUCKET_NAME}/{AWS_LOCATION}/'
+    MEDIA_URL = '/media/'
+    MEDIA_HOST = f"http://{AWS_S3_CUSTOM_DOMAIN}/{AWS_STORAGE_BUCKET_NAME}"
+
+else:
+    MEDIA_ROOT = BASE_DIR / "media"
+    MEDIA_URL = "/media/"
 
 # Email Configuration (for development - prints to console)
 if DEBUG:
