@@ -1,46 +1,17 @@
-# Use an official Python runtime as a parent image
-FROM python:3.13-slim-bookworm
+FROM python:3.13-slim
 
-# Set environment variables
-# Disable .pyc file generation and enable unbuffered logging
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
-# Set work directory
-WORKDIR /app # All subsequent commands run from /app
+WORKDIR /app
 
-# Create a non-root user and group for the application
-RUN groupadd -r appgroup && useradd --no-log-init -r -g appgroup -d /app appuser
+COPY requirements.txt .
+RUN echo "Installing dependencies..." && pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt     graphviz     && rm -rf /var/lib/apt/lists/*
 
-# Install system dependencies
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    apt-utils \
-    curl \
-    build-essential \
-    libpq-dev && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+COPY . .
 
-# Create app directories and set ownership
-RUN mkdir -p /app/staticfiles /app/mediafiles && \
-    chown -R appuser:appgroup /app && \
-    chmod -R 755 /app
-
-# Install dependencies
-# Copy requirements first to leverage Docker cache, set ownership
-COPY --chown=appuser:appgroup requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt # <<< THIS LINE IS CRUCIAL
-
-# Copy project
-# Copy the rest of the application code, set ownership
-COPY --chown=appuser:appgroup . .
-
-# Collect static files. This runs as root during the build, which is fine.
+# Collect static files
 RUN python manage.py collectstatic --noinput
 
-# Switch to the non-root user for running the application
-USER appuser
-
-# Expose port 8000
-CMD ["python", "-m", "gunicorn", "TinderCloneProject.wsgi:application", "--bind", "0.0.0.0:8000"]
+# Use gunicorn to serve the Django app (invoked via Python module)
+CMD ["python", "-m", "gunicorn", "ecommerce.wsgi:application", "--bind", "0.0.0.0:8000"]
