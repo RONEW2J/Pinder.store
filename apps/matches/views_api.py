@@ -1,7 +1,9 @@
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from django.db.models import Q
+from django.shortcuts import get_object_or_404
 from .models import Match, Conversation, Message
+from rest_framework.views import APIView
 from .serializers import MatchSerializer, ConversationSerializer, MessageSerializer
 
 class MatchListView(generics.ListAPIView):
@@ -86,3 +88,14 @@ class ConversationDetailView(generics.RetrieveAPIView):
 
     def get_queryset(self):
         return super().get_queryset().filter(participants=self.request.user)
+    
+class UnmatchView(APIView):
+    def post(self, request, profile_id):
+        match = get_object_or_404(
+            Match.objects.filter(
+                (Q(user1=request.user) & Q(user2_id=profile_id)) |
+                (Q(user2=request.user) & Q(user1_id=profile_id))
+            )
+        )
+        match.delete()
+        return Response({'status': 'success'}, status=status.HTTP_200_OK)

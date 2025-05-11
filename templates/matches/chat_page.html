@@ -17,7 +17,7 @@
         
         <div class="conversation-items">
             {% for conversation in conversations %}
-                <a href="{% url 'conversation' conversation.id %}" class="conversation-item {% if conversation.id == active_conversation.id %}active{% endif %} {% if conversation.has_unread %}unread{% endif %}">
+                <a href="{% url 'matches:chat-page' conversation.id %}" class="conversation-item">
                     <div class="conversation-avatar" style="background-image: url('{{ conversation.other_profile.main_image.url }}')">
                         {% if conversation.other_profile.is_online %}
                             <div class="online-indicator"></div>
@@ -39,7 +39,7 @@
             {% empty %}
                 <div class="no-conversations">
                     <p>You don't have any messages yet.</p>
-                    <a href="{% url 'matches' %}" class="btn primary-btn">View Matches</a>
+                    <a href="{% url 'matches:matches-list-discover' %}" class="btn primary-btn">View Matches</a>
                 </div>
             {% endfor %}
         </div>
@@ -62,7 +62,7 @@
                     </div>
                 </div>
                 <div class="conversation-actions">
-                    <a href="{% url 'view_profile' active_conversation.other_profile.id %}" class="btn view-profile-btn">
+                        <a href="{% url 'profiles:view_profile' active_conversation.other_profile.id %}" class="btn view-profile-btn">
                         <i class="fas fa-user"></i> View Profile
                     </a>
                     <button class="btn unmatch-btn" data-profile-id="{{ active_conversation.other_profile.id }}">
@@ -100,7 +100,7 @@
             </div>
 
             <div class="message-input">
-                <form id="messageForm" method="post" action="{% url 'send_message' active_conversation.id %}">
+                <form id="messageForm" method="post" action="{% url 'matches:send-message' active_conversation.id %}">
                     {% csrf_token %}
                     <input type="text" name="content" id="messageInput" placeholder="Type a message..." required>
                     <button type="submit" id="sendButton">

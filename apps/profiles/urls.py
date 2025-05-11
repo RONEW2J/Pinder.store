@@ -6,7 +6,7 @@ from .views import (
     UserProfileDetailView, InterestListCreateView, ProfileListView,
     PhotoListCreateView, PhotoDetailView,
     # Your existing function-based views for UI
-    user_profile_display_view, profile_edit_view, photo_upload_view, photo_delete_view
+    user_profile_display_view, profile_edit_view, photo_upload_view, photo_delete_view, view_profile,
 )
 
 app_name = 'profiles'
@@ -33,5 +33,6 @@ urlpatterns = [
     path('api/profiles/', ProfileListView.as_view(), name='api-profile-list'),
     path('api/photos/', PhotoListCreateView.as_view(), name='api-photo-list-create'),
     path('api/photos/<int:pk>/', PhotoDetailView.as_view(), name='api-photo-detail'),
+    path('view/<int:profile_id>/', view_profile, name='view_profile'),
     # path('api/', include(router.urls)), # This line is removed
 ]

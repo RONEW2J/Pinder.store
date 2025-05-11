@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="{% static 'css/main.css' %}">
     {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body data-user-id="{{ request.user.id }}">
     <header>
         <nav class="navbar">
             <div class="navbar-brand">
@@ -21,8 +21,8 @@
             <div class="navbar-menu">
                 {% if user.is_authenticated %}
                     <a href="{% url 'profiles:profile-display' %}" class="nav-item"><i class="fas fa-user"></i> Profile</a>
-                    <a href="{% url 'matches:matches-list-discover' %}" class="nav-item"><i class="fas fa-heart"></i> Matches</a>
-                    <a href="{% url 'matches:matches-list-discover' %}" class="nav-item"><i class="fas fa-comments"></i> Messages</a> {# Or link to a specific messages/conversations list page if different #}
+                    <a href="{% url 'matches:matches-list' %}" class="nav-item"><i class="fas fa-heart"></i> Matches</a>
+                    <a href="{% url 'matches:matches-list' %}" class="nav-item"><i class="fas fa-comments"></i> Messages</a> {# Or link to a specific messages/conversations list page if different #}
                     <a href="{% url 'accounts:logout_page' %}" class="nav-item"><i class="fas fa-sign-out-alt"></i> Logout</a>
                 {% else %}
                     <a href="{% url 'accounts:login_page' %}" class="nav-item"><i class="fas fa-sign-in-alt"></i> Login</a>

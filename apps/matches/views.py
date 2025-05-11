@@ -3,6 +3,10 @@ from rest_framework.response import Response
 from django.db.models import Q
 from .models import Match, Conversation, Message
 from .serializers import MatchSerializer, ConversationSerializer, MessageSerializer
+from .forms import MessageForm
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
 
 class MatchListView(generics.ListAPIView):
     """
@@ -143,19 +147,61 @@ def list_matches_view(request):
     return render(request, 'matches.html', context)
 
 @login_required
-def chat_view(request, conversation_id):
-    conversation = get_object_or_404(Conversation, id=conversation_id, participants=request.user)
-    other_participant = conversation.participants.exclude(id=request.user.id).first()
+def chat_view(request):
+    conversations = Conversation.objects.filter(
+        participants=request.user
+    ).prefetch_related(
+        'participants__profile',
+        'messages'
+    ).order_by('-updated_at')
     
-    context = {
-        'conversation_id': conversation_id,
-        'current_user_id': request.user.id,
-        'messages': conversation.messages.all().order_by('created_at'),
-        'other_user_profile': getattr(other_participant, 'profile', None),
-        'conversation_obj': conversation,
-    }
-    return render(request, 'matches/chat_page.html', context)
+    return render(request, 'matches/chat_page.html', {
+        'conversations': conversations,
+        'current_user_id': request.user.id
+    })
+
+@login_required
+def chat_detail_view(request, conversation_id):
+    conversation = get_object_or_404(
+        Conversation.objects.filter(participants=request.user),
+        id=conversation_id
+    )
+    messages = conversation.messages.all().order_by('created_at')
     
+    conversations = Conversation.objects.filter(
+        participants=request.user
+    ).prefetch_related(
+        'participants__profile',
+        'messages'
+    ).order_by('-updated_at')
+    
+    return render(request, 'matches/chat_page.html', {
+        'active_conversation': conversation,
+        'conversations': conversations,
+        'messages': messages,
+        'current_user_id': request.user.id
+    })
+
+@login_required
+def send_message_view(request, conversation_id):
+    conversation = get_object_or_404(
+        Conversation, 
+        id=conversation_id, 
+        participants=request.user
+    )
+    
+    if request.method == 'POST':
+        content = request.POST.get('content', '').strip()
+        if content:
+            Message.objects.create(
+                conversation=conversation,
+                sender=request.user,
+                content=content
+            )
+            return JsonResponse({'status': 'success'})
+    
+    return JsonResponse({'status': 'error'}, status=400)
+
 @login_required
 def create_or_get_conversation_view(request, target_user_id):
     target_user = get_object_or_404(User, pk=target_user_id)
@@ -163,7 +209,43 @@ def create_or_get_conversation_view(request, target_user_id):
 
     if target_user == current_user:
         messages.error(request, "You cannot start a conversation with yourself.")
-        return redirect('profiles:profile-display')
+        return redirect('matches:matches-list')
 
-    match, conversation = Match.create_match_and_conversation(current_user, target_user)
+    # Проверяем существующую беседу
+    existing_conversation = Conversation.objects.filter(
+        participants=current_user
+    ).filter(
+        participants=target_user
+    ).first()
+
+    if existing_conversation:
+        return redirect('matches:chat-page', conversation_id=existing_conversation.id)
+
+    # Создаем новую беседу и match
+    conversation = Conversation.objects.create()
+    conversation.participants.add(current_user, target_user)
+    
+    # Создаем или обновляем match
+    match, created = Match.objects.get_or_create(
+        Q(user1=current_user, user2=target_user) | Q(user1=target_user, user2=current_user),
+        defaults={'conversation': conversation}
+    )
+    
+    if not created:
+        match.conversation = conversation
+        match.save()
+
     return redirect('matches:chat-page', conversation_id=conversation.id)
+
+@login_required
+def send_message_view(request, conversation_id):
+    conversation = get_object_or_404(Conversation, id=conversation_id, participants=request.user)
+    if request.method == 'POST':
+        form = MessageForm(request.POST)
+        if form.is_valid():
+            message = form.save(commit=False)
+            message.conversation = conversation
+            message.sender = request.user
+            message.save()
+            return JsonResponse({'status': 'success'})
+    return JsonResponse({'status': 'error'}, status=400)

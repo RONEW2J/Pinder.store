@@ -236,3 +236,8 @@ def photo_delete_view(request, photo_id):
     
     messages.success(request, 'Photo deleted successfully!')
     return redirect('profiles:profile-display')
+
+@login_required
+def view_profile(request, profile_id):
+    profile = get_object_or_404(Profile, id=profile_id)
+    return render(request, 'profiles/view_profile.html', {'profile': profile})

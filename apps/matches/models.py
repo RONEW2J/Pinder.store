@@ -51,6 +51,11 @@ class Conversation(models.Model):
     participants = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='conversations_participated')
     created_at = models.DateTimeField(_('Created At'), auto_now_add=True)
     updated_at = models.DateTimeField(_('Updated At'), auto_now=True)
+    other_profile = models.ForeignKey(
+        'profiles.Profile', 
+        on_delete=models.CASCADE,
+        related_name='conversations'
+    )
 
     class Meta:
         verbose_name = _('Conversation')
