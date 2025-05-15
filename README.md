@@ -93,7 +93,7 @@ Swagger UI is available at:
 |------------------------|------------------------------|--------------------------------|
 | **Said Darkhanuly**    | Backend / FrontEnd Developer | [@sdrk47](https://github.com/sdrk47) |
 | **Ikhtiyor Ibragimov** | Backend Developer / DevOps   | [@RONEW2J](https://github.com/RONEW2J) |
-| **Kamron Yunussaliev**| FrontEnd Developer         | [@Kamron](https://github.com/kamron683) |
+| **Kamron Yunussaliev**| FrontEnd Developer         | [@Kamron](https://github.com/kama683) |
 
 ## 📄 License
 
