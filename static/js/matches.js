@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', function() {
             this.userIdToSwipe = null;
             
             // API настройки
-            this.apiEndpoint = options.apiEndpoint || '/api/swipe';
+            this.apiEndpoint = options.apiEndpoint || '/matches/api/swipe';
             this.csrfTokenSelector = options.csrfTokenSelector || '[name=csrfmiddlewaretoken]';
             
             // Инициализация
@@ -267,26 +267,21 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // Remove active class
-            card.classList.remove('active-card');
-            
+            card.style.display = 'none';
+    
             // Increment current card index
             this.currentCardIndex++;
             
-            // Удаляем карточку из визуального стека после анимации
-            setTimeout(() => {
-                card.style.display = 'none';
-                
-                // Update card stack after the current card is animated out
-                this.updateCardStackAfterSwipe();
-                
-                // Проверяем, остались ли карточки
-                if (this.currentCardIndex >= this.cards.length) {
-                    this.showNoMoreProfiles();
-                }
-            }, this.animationSpeed);
+            // Update card stack
+            this.updateCardStackAfterSwipe();
             
-            // Отправляем запрос на сервер
+            // Send API request
             this.sendSwipeRequest(profileId, action);
+            
+            // Check if we're out of cards
+            if (this.currentCardIndex >= this.cards.length) {
+                this.showNoMoreProfiles();
+            }
         }
         
         // Update card stack after a swipe action
@@ -330,7 +325,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Adjust the API endpoint to match your actual backend URL pattern
                 // This should match the URL pattern in your Django urls.py
-                const apiUrl = `/api/actions/swipe/${profileId}/${action}/`;
+                const apiUrl = `/matches/api/swipe/${profileId}/${action}/`;
                 debugLog(`API URL: ${apiUrl}`);
                 
                 const response = await fetch(apiUrl, {
@@ -492,7 +487,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 likeButtonSelector: '#likeBtn',
                 passButtonSelector: '#passBtn',
                 swipeContainerSelector: '.swipe-container',
-                apiEndpoint: '/api/actions/swipe', // Updated to match your likely API pattern
+                apiEndpoint: '/matches/api/swipe', // Updated to match your likely API pattern
                 threshold: 100,
                 rotationAngle: 15,
                 animationSpeed: 400,
