@@ -37,46 +37,57 @@
 .cards-container {
     position: relative;
     width: 100%;
-    height: 100%; /* или другая фиксированная высота для карточек */
-    perspective: 1000px; /* Для 3D эффектов, если захотите */
+    height: 100%;
+    perspective: 1000px;
+    overflow: visible;
 }
 
+/* Card styles and stacking */
 .swipe-card {
     position: absolute;
     width: 100%;
     height: 100%;
     cursor: grab;
-    will-change: transform, opacity; /* Оптимизация производительности анимации */
-    transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.5s ease-out; /* Плавный возврат и улетание */
+    will-change: transform;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    overflow: hidden;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    background-color: var(--white);
+    touch-action: none; /* Fix for touchscreen dragging */
 }
 
 .swipe-card.dragging {
     cursor: grabbing;
+    transition: none; /* Disable transition during dragging for smoother motion */
 }
 
+/* Stacked cards styling */
 .swipe-card:nth-child(1) {
-    z-index: 5;
-    transform: scale(1) translateY(0);
+    z-index: 10;
+    transform: translateZ(0) scale(1) translateY(0);
     opacity: 1;
 }
 
 .swipe-card:nth-child(2) {
-    z-index: 4;
-    transform: scale(0.95) translateY(10px);
-    opacity: 0.9;
+    z-index: 9;
+    transform: translateZ(-10px) scale(0.97) translateY(10px);
+    opacity: 0.95;
+    pointer-events: none;
 }
 
 .swipe-card:nth-child(3) {
-    z-index: 3;
-    transform: scale(0.9) translateY(20px);
-    opacity: 0.8;
+    z-index: 8;
+    transform: translateZ(-20px) scale(0.94) translateY(20px);
+    opacity: 0.9;
+    pointer-events: none;
 }
 
 .swipe-card:nth-child(n+4) {
-    z-index: 2;
-    transform: scale(0.85) translateY(30px);
-    opacity: 0; /* Скрываем, чтобы не нагружать рендер */
-    pointer-events: none; /* Чтобы нельзя было с ними взаимодействовать */
+    z-index: 1;
+    transform: translateZ(-30px) scale(0.91) translateY(30px);
+    opacity: 0.85;
+    pointer-events: none;
 }
 
 .card-photo {
@@ -167,74 +178,134 @@
     color: var(--white);
 }
 
+/* Improved swipe indicators on card */
 .swipe-indicators-on-card {
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
-    bottom: 0; /* Растягиваем на всю карточку */
-    pointer-events: none; /* Чтобы не мешали кликам/свайпам по самой карте */
-    display: flex; /* Можно использовать для выравнивания, если нужно */
-    align-items: flex-start; /* Пример: выравнивание по верху */
-    justify-content: space-between; /* Пример: разнос по краям */
+    bottom: 0;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 5;
 }
+
 .swipe-indicators-on-card .like-indicator,
 .swipe-indicators-on-card .nope-indicator {
-    position: absolute; /* Абсолютно внутри .swipe-indicators-on-card */
-    top: 40px; /* Отступ сверху */
-    padding: 8px 15px;
-    font-size: 1.5rem; /* Поменьше для размещения на карте */
+    position: absolute;
+    padding: 10px 20px;
+    font-size: 2rem;
     font-weight: bold;
-    border: 3px solid;
+    border: 4px solid;
     border-radius: 8px;
-    opacity: 0; /* Изначально скрыты */
-    transition: opacity 0.2s ease-in-out; /* Плавное появление/исчезание */
-    z-index: 10; /* Поверх фото, но под информацией, если нужно */
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    backdrop-filter: blur(2px);
 }
 
 .swipe-indicators-on-card .like-indicator {
-    right: 20px; /* Отступ справа */
+    right: 25px;
+    top: 50px;
     color: var(--success);
     border-color: var(--success);
-    transform: rotate(15deg); /* Небольшой наклон */
+    transform: rotate(15deg);
 }
 
 .swipe-indicators-on-card .nope-indicator {
-    left: 20px; /* Отступ слева */
+    left: 25px;
+    top: 50px;
     color: var(--danger);
     border-color: var(--danger);
-    transform: rotate(-15deg); /* Небольшой наклон */
+    transform: rotate(-15deg);
 }
 
+/* Improved animations */
 @keyframes swipeOutRight {
+    from {
+        transform: translateX(0) rotate(0deg);
+        opacity: 1;
+    }
     to {
-        transform: translateX(150%) rotate(30deg);
+        transform: translateX(200%) rotate(40deg);
         opacity: 0;
     }
 }
 
 @keyframes swipeOutLeft {
+    from {
+        transform: translateX(0) rotate(0deg);
+        opacity: 1;
+    }
     to {
-        transform: translateX(-150%) rotate(-30deg);
+        transform: translateX(-200%) rotate(-40deg);
         opacity: 0;
     }
 }
-/* Animation classes */
+
+@keyframes cardAppear {
+    from {
+        transform: translateZ(-30px) scale(0.91) translateY(30px);
+        opacity: 0.85;
+    }
+    to {
+        transform: translateZ(0) scale(1) translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Animation classes for applying effects */
 .swipe-card.swiping-right {
-    animation: swipeOutRight 0.5s forwards ease-out;
+    animation: swipeOutRight 0.6s forwards cubic-bezier(0.165, 0.84, 0.44, 1);
+    pointer-events: none;
 }
 
 .swipe-card.swiping-left {
-    animation: swipeOutLeft 0.5s forwards ease-out;
+    animation: swipeOutLeft 0.6s forwards cubic-bezier(0.165, 0.84, 0.44, 1);
+    pointer-events: none;
 }
 
-.swipe-card.dragging-right .like-indicator {
-    opacity: 1;
+.swipe-card.appears {
+    animation: cardAppear 0.4s forwards ease-out;
 }
 
+/* Visual feedback during drag */
+.swipe-card.dragging-right {
+    transform: rotate(5deg) !important;
+}
+
+.swipe-card.dragging-left {
+    transform: rotate(-5deg) !important;
+}
+
+.swipe-card.dragging-right .like-indicator,
 .swipe-card.dragging-left .nope-indicator {
     opacity: 1;
 }
+
+/* Dynamic rotation based on drag distance */
+.swipe-card[data-rotation="1"] { transform: rotate(1deg) !important; }
+.swipe-card[data-rotation="2"] { transform: rotate(2deg) !important; }
+.swipe-card[data-rotation="3"] { transform: rotate(3deg) !important; }
+.swipe-card[data-rotation="4"] { transform: rotate(4deg) !important; }
+.swipe-card[data-rotation="5"] { transform: rotate(5deg) !important; }
+.swipe-card[data-rotation="6"] { transform: rotate(6deg) !important; }
+.swipe-card[data-rotation="7"] { transform: rotate(7deg) !important; }
+.swipe-card[data-rotation="8"] { transform: rotate(8deg) !important; }
+.swipe-card[data-rotation="9"] { transform: rotate(9deg) !important; }
+.swipe-card[data-rotation="10"] { transform: rotate(10deg) !important; }
+.swipe-card[data-rotation="-1"] { transform: rotate(-1deg) !important; }
+.swipe-card[data-rotation="-2"] { transform: rotate(-2deg) !important; }
+.swipe-card[data-rotation="-3"] { transform: rotate(-3deg) !important; }
+.swipe-card[data-rotation="-4"] { transform: rotate(-4deg) !important; }
+.swipe-card[data-rotation="-5"] { transform: rotate(-5deg) !important; }
+.swipe-card[data-rotation="-6"] { transform: rotate(-6deg) !important; }
+.swipe-card[data-rotation="-7"] { transform: rotate(-7deg) !important; }
+.swipe-card[data-rotation="-8"] { transform: rotate(-8deg) !important; }
+.swipe-card[data-rotation="-9"] { transform: rotate(-9deg) !important; }
+.swipe-card[data-rotation="-10"] { transform: rotate(-10deg) !important; }
 
 /* Matches grid */
 .matches-grid {
@@ -406,7 +477,7 @@
     .matches-grid {
         grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     }
-    
+
     .swipe-container {
         height: 450px;
     }
@@ -416,7 +487,7 @@
     .matches-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .swipe-container {
         height: 400px;
     }

@@ -11,6 +11,7 @@ urlpatterns = [
     path('api/conversations/<int:id>/', views_api.ConversationDetailView.as_view(), name='api-conversation-detail'),
     path('api/conversations/<int:conversation_id>/messages/', views_api.MessageListView.as_view(), name='api-messages-list'),
     path('api/actions/unmatch/<int:user_id>/', views_api.UnmatchView.as_view(), name='api-unmatch'),
+    path('api/actions/swipe/<int:profile_id>/<str:action>/', views_api.SwipeActionView.as_view(), name='api-swipe'),
     path('api/swipe/<int:profile_id>/<str:action>/', views.swipe_action_view, name='swipe_action'),
     # UI Endpoints
     path('', views.list_matches_view, name='matches-list'),  # Главная страница matches
