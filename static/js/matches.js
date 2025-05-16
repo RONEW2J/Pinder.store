@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', function() {
             this.userIdToSwipe = null;
             
             // API настройки
-            this.apiEndpoint = options.apiEndpoint || '/matches/api/swipe';
+            this.apiEndpoint = options.apiEndpoint || '/api/matches/api/swipe/';
             this.csrfTokenSelector = options.csrfTokenSelector || '[name=csrfmiddlewaretoken]';
             
             // Инициализация
@@ -325,7 +325,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Adjust the API endpoint to match your actual backend URL pattern
                 // This should match the URL pattern in your Django urls.py
-                const apiUrl = `/matches/api/swipe/${profileId}/${action}/`;
+                const apiUrl = `/api/matches/api/swipe/${profileId}/${action}/`;
                 debugLog(`API URL: ${apiUrl}`);
                 
                 const response = await fetch(apiUrl, {
@@ -487,7 +487,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 likeButtonSelector: '#likeBtn',
                 passButtonSelector: '#passBtn',
                 swipeContainerSelector: '.swipe-container',
-                apiEndpoint: '/matches/api/swipe', // Updated to match your likely API pattern
+                apiEndpoint: '/api/matches/api/swipe', // Updated to match your likely API pattern
                 threshold: 100,
                 rotationAngle: 15,
                 animationSpeed: 400,

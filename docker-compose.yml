@@ -1,19 +1,24 @@
+version: '3.8'
+
 services:
   web:
-    build: .
-    command: > # Temporarily add --workers 1 and --log-level debug
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    command: >
       bash -c "python manage.py collectstatic --noinput &&
                gunicorn TinderCloneProject.wsgi:application --bind 0.0.0.0:8000 --workers 1 --log-level debug"
     volumes:
       - .:/app
       - static_volume:/app/static
+      - /app/staticfiles  # Добавляем volume для staticfiles
     ports:
-      - "8009:8000"  
+      - "8010:8000"
     depends_on:
       db:
-        condition: service_healthy # Wait for db to be healthy
+        condition: service_healthy
       minio:
-        condition: service_healthy # Wait for minio to be healthy
+        condition: service_healthy
     env_file:
       - .env.prod
 
@@ -100,3 +105,4 @@ volumes:
   static_volume:
   minio_data:
   redis_data:
+  staticfiles:

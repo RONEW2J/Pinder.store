@@ -5,13 +5,16 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
+# Установка зависимостей
 COPY requirements.txt .
-RUN echo "Installing dependencies..." && pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt graphviz && rm -rf /var/lib/apt/lists/*
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
+# Копируем весь проект
 COPY . .
 
-# Collect static files
+# Собираем статику (будет пересобираться при каждом билде)
 RUN python manage.py collectstatic --noinput
 
-# Use gunicorn to serve the Django app (invoked via Python module)
-CMD ["python", "-m", "gunicorn", "TinderCloneProject.wsgi:application", "--bind", "0.0.0.0:8000"]
+# Запуск через gunicorn
+CMD ["gunicorn", "TinderCloneProject.wsgi:application", "--bind", "0.0.0.0:8000"]
