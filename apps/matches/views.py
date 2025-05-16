@@ -1,11 +1,12 @@
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from django.db.models import Q
-from .models import Match, Conversation, Message
+from .models import Match, Conversation, Message, SwipeAction
 from .serializers import MatchSerializer, ConversationSerializer, MessageSerializer
 from .forms import MessageForm
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_http_methods, require_POST
 from django.http import JsonResponse
 
 class MatchListView(generics.ListAPIView):
@@ -122,15 +123,18 @@ def list_matches_view(request):
     # Get discovery profiles (excluding matches and blocked users)
     matched_user_ids = [match.user2.id if match.user1 == request.user else match.user1.id 
                        for match in all_matches]
-    
+    swiped_profile_ids = SwipeAction.objects.filter(swiper=request.user).values_list('profile_id', flat=True)
+
     discovery_profiles = Profile.objects.exclude(
         user=request.user
     ).exclude(
         user__id__in=matched_user_ids
     ).exclude(
-        id__in=user_profile.blocked_users.values_list('id', flat=True)
+        id__in=user_profile.blocked_users.values_list('id', flat=True) # Предполагается, что blocked_users это QuerySet профилей
+    ).exclude(
+        id__in=swiped_profile_ids # Исключаем уже свайпнутые профили
     )
-    
+        
     context = {
         'all_matches': matches_data,
         'discovery_profiles': discovery_profiles,  # This is the key fix
@@ -176,29 +180,31 @@ def chat_detail_view(request, conversation_id):
     })
 
 @login_required
+@require_POST # Добавляем декоратор для безопасности, если это API для AJAX
 def send_message_view(request, conversation_id):
-    conversation = get_object_or_404(
-        Conversation, 
-        id=conversation_id, 
-        participants=request.user
-    )
-    
-    if request.method == 'POST':
-        content = request.POST.get('content', '').strip()
-        if content:
-            Message.objects.create(
-                conversation=conversation,
-                sender=request.user,
-                content=content
-            )
-            return JsonResponse({'status': 'success'})
-    
-    return JsonResponse({'status': 'error'}, status=400)
+    conversation = get_object_or_404(Conversation, id=conversation_id, participants=request.user)
+    form = MessageForm(request.POST)
+    if form.is_valid():
+        message = form.save(commit=False)
+        message.conversation = conversation
+        message.sender = request.user
+        message.save()
+        # Для AJAX можно вернуть данные сообщения, если нужно их сразу отобразить на клиенте
+        return JsonResponse({
+            'status': 'success',
+            'message_id': message.id,
+            'content': message.content,
+            'sender_id': message.sender.id,
+            'timestamp': message.created_at.strftime('%Y-%m-%dT%H:%M:%S') # ISO формат
+        })
+    else:
+        # Можно вернуть ошибки формы
+        return JsonResponse({'status': 'error', 'errors': form.errors}, status=400)
 
 @login_required
 def create_or_get_conversation_view(request, target_user_id):
-    target_user = get_object_or_404(User, pk=target_user_id)
-    current_user = request.user
+    target_user = get_object_or_404(User, pk=target_user_id) # Добавьте это в начало функции
+    current_user = request.user # Добавьте это в начало функции
 
     if target_user == current_user:
         messages.error(request, "You cannot start a conversation with yourself.")
@@ -212,7 +218,7 @@ def create_or_get_conversation_view(request, target_user_id):
     ).first()
 
     if existing_conversation:
-        return redirect('matches:chat-page', conversation_id=existing_conversation.id)
+        return redirect('matches:chat-detail', conversation_id=existing_conversation.id)
 
     # Создаем новую беседу и match
     conversation = Conversation.objects.create()
@@ -267,4 +273,47 @@ def discover_profiles_view(request):
     return render(request, 'matches.html', {
         'discovery_profiles': discovery_profiles,
         # other context data...
+    })
+
+@login_required
+@require_POST
+def swipe_action_view(request, profile_id, action):
+    current_user_profile = request.user.profile
+    target_profile = Profile.objects.get(id=profile_id)
+
+    if current_user_profile == target_profile:
+        return JsonResponse({'status': 'error', 'message': 'Cannot swipe your own profile'}, status=400)
+
+    # Записываем действие
+    SwipeAction.objects.update_or_create(
+        swiper=request.user, # или swiper_profile=current_user_profile
+        profile=target_profile,
+        defaults={'action': action}
+    )
+
+    match_occurred = False
+    if action == 'like':
+        if SwipeAction.objects.filter(swiper=target_profile.user, profile=current_user_profile, action='like').exists():
+            match_occurred = True
+            # Используем метод модели для создания мэтча и беседы
+            match, conversation = Match.create_match_and_conversation(request.user, target_profile.user)
+
+            # Добавляем ID беседы в ответ, если клиент его использует
+            response_data = {
+                'status': 'success',
+                'action': action,
+                'match': match_occurred,
+                'user_profile_image': current_user_profile.main_image.url if current_user_profile.main_image else None,
+                'matched_profile_image': target_profile.main_image.url if target_profile.main_image else None,
+                'matched_profile_name': target_profile.user.first_name,
+                'conversation_id': conversation.id # ID для возможного редиректа в чат
+            }
+            return JsonResponse(response_data)
+
+    # Если не 'like' или не мэтч
+    return JsonResponse({
+        'status': 'success',
+        'action': action,
+        'match': match_occurred,
+        # ... (остальные поля, если нужны, но без conversation_id, если мэтча не было)
     })

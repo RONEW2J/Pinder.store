@@ -1,83 +1,17 @@
 {% extends 'base.html' %}
 {% load static %}
-
+<script src="{% static 'js/hammer.min.js' %}"></script>
+<img src="{% static 'images/default_avatar.png' %}" alt="Default Avatar">
+<script src="{% static 'js/matches.js' %}"></script>
 {% block title %}My Matches | Tinder Clone{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/matches.css' %}">
-<style>
-    /* Additional inline styles */
-    .matches-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 20px;
-        padding: 20px 0;
-    }
-    
-    .match-card {
-        background: white;
-        border-radius: 10px;
-        overflow: hidden;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        transition: transform 0.3s ease;
-    }
-    
-    .match-card:hover {
-        transform: translateY(-5px);
-    }
-    
-    .match-photo {
-        height: 300px;
-        background-size: cover;
-        background-position: center;
-        position: relative;
-    }
-    
-    .match-actions {
-        position: absolute;
-        bottom: 15px;
-        left: 0;
-        right: 0;
-        display: flex;
-        justify-content: center;
-        gap: 10px;
-    }
-    
-    .debug-info {
-        display: none;
-        background: #f8f9fa;
-        padding: 10px;
-        margin-bottom: 20px;
-        border-radius: 5px;
-        font-family: monospace;
-    }
-    .slideshow-container {
-        position: relative;
-        /* max-width: 400px; /* Adjust as needed */
-        margin: auto;
-        overflow: hidden; /* Important for slideshow effect */
-    }
-    .discovery-slide {
-        display: none; /* Initially hide all slides */
-        /* Ensure cards take up space if needed, or JS will handle display */
-    }
-    .discovery-slide.active {
-        display: block; /* Show active slide */
-    }
-    /* Basic styling for Next/Prev buttons */
-    .slideshow-controls { text-align: center; margin-top: 10px; }
-</style>
 {% endblock %}
 
 {% block content %}
 <div class="container" data-user-authenticated="{{ user.is_authenticated|yesno:'true,false' }}">
     <h1 class="page-title">Discover Profiles</h1>
-    
-    <div class="debug-info">
-        User: {{ user.username|default:"Guest" }}, 
-        Authenticated: {{ user.is_authenticated|yesno:"Yes,No" }},
-        Matches: {{ all_matches|length }}
-    </div>
     
     <div class="filters-container">
         <form id="discoveryFilterForm" method="GET">
@@ -100,39 +34,40 @@
 
     <section class="profile-discovery-section">
         <h2>Profiles Near You</h2>
-        <div class="slideshow-container" id="profilesSlideshow">
+        
+        <div class="swipe-container">
             {% if discovery_profiles %}
-                {% for profile in discovery_profiles %}
-                    <div class="discovery-slide match-card" data-profile-id="{{ profile.user.id }}">
-                        <div class="match-photo" style="background-image: url('{% if profile.main_image %}{{ profile.main_image.url }}{% else %}{% static 'images/default_avatar.png' %}{% endif %}')">
-                            <div class="match-actions">
-                                <button class="btn pass-btn" data-user-id="{{ profile.user.id }}" title="Pass">
-                                    <i class="fas fa-times fa-2x"></i>
-                                </button>
-                                <button class="btn like-btn" data-user-id="{{ profile.user.id }}" title="Like">
-                                    <i class="fas fa-heart fa-2x"></i>
-                                </button>
+                <div class="cards-container">
+                    {% for profile in discovery_profiles %}
+                        <div class="swipe-card" data-profile-id="{{ profile.id }}">
+                            <div class="card-photo" style="background-image: url('{% if profile.main_image %}{{ profile.main_image.url }}{% else %}{% static 'images/default_avatar.png' %}{% endif %}')">
+                                <div class="swipe-indicators-on-card">
+                                    <div class="like-indicator">LIKE</div>
+                                    <div class="nope-indicator">NOPE</div>
+                                </div>
+                                <div class="card-info">
+                                    </div>
                             </div>
                         </div>
-                        <div class="match-info">
-                            <h3>{{ profile.user.first_name }}, {{ profile.age }}</h3>
-                            <p class="match-location">
-                                <i class="fas fa-map-marker-alt"></i> 
-                                {% if profile.city %}{{ profile.city.name }}{% else %}Location not set{% endif %}
-                            </p>
-                            {% if profile.bio %}
-                                <p class="profile-bio">{{ profile.bio|truncatewords:15 }}</p>
-                            {% endif %}
                         </div>
-                    </div>
-                {% endfor %}
+                    {% endfor %}
+                </div>
                 
-                <div class="slideshow-controls">
-                    <button id="prevProfile" class="btn"><i class="fas fa-chevron-left"></i> Previous</button>
-                    <button id="nextProfile" class="btn"><i class="fas fa-chevron-right"></i> Next</button>
+                <div class="swipe-buttons">
+                    <button id="passBtn" class="swipe-btn pass-btn" title="Pass">
+                        <i class="fas fa-times fa-2x"></i>
+                    </button>
+                    <button id="likeBtn" class="swipe-btn like-btn" title="Like">
+                        <i class="fas fa-heart fa-2x"></i>
+                    </button>
+                </div>
+                
+                <div class="swipe-indicators">
+                    <div class="like-indicator">LIKE</div>
+                    <div class="nope-indicator">NOPE</div>
                 </div>
             {% else %}
-                <div class="no-matches">
+                <div class="no-profiles">
                     <p>No new profiles to discover right now. Try adjusting your filters or check back later!</p>
                 </div>
             {% endif %}
@@ -144,8 +79,7 @@
     <div class="matches-grid">
         {% for item_dict in all_matches %}
             {% with match_obj=item_dict.match_object other_user_profile=item_dict.other_user_profile %}
-                {# This is your original match card for existing matches #}
-                <div class="match-card" data-profile-id="{{ other_user_profile.user.id }}">
+                <div class="match-card" data-profile-id="{{ other_user_profile.id }}">
                     <div class="match-photo" style="background-image: url('{% if other_user_profile.main_image %}{{ other_user_profile.main_image.url }}{% else %}{% static 'images/default_avatar.png' %}{% endif %}')">
                         <div class="match-actions">
                             <a href="{% url 'matches:create_conversation' other_user_profile.user.id %}" class="btn message-btn">
@@ -167,7 +101,7 @@
                             {% endif %}
                         </p>
                         {% if match_obj.conversation and match_obj.conversation.id %}
-                            <a href="{% url 'matches:chat-page' match_obj.conversation.id %}" class="view-conversation">
+                            <a href="{% url 'matches:chat-detail' match_obj.conversation.id %}" class="view-conversation">
                                 View Conversation
                                 {% if match_obj.conversation.unread_count > 0 %}
                                     <span class="unread-badge">{{ match_obj.conversation.unread_count }}</span>
@@ -185,10 +119,41 @@
     </div>
 </div>
 
-<!-- Unmatch Modal remains the same -->
+<!-- Unmatch Confirmation Modal -->
+<div class="modal" id="unmatchModal">
+    <div class="modal-content">
+        <h2>Unmatch Confirmation</h2>
+        <p>Are you sure you want to unmatch with this person? This action cannot be undone and all messages will be deleted.</p>
+        <div class="modal-actions">
+            <button class="btn secondary-btn" id="cancelUnmatch">Cancel</button>
+            <button class="btn danger-btn" id="confirmUnmatch">Unmatch</button>
+        </div>
+    </div>
+</div>
+
+<!-- Match Success Modal -->
+<div class="modal" id="matchSuccessModal">
+    <div class="modal-content match-success">
+        <div class="match-success-header">
+            <h2>It's a Match!</h2>
+            <i class="fas fa-heart pulse"></i>
+        </div>
+        <div class="match-profiles">
+            <div class="match-profile-pic user-pic"></div>
+            <div class="match-profile-pic match-pic"></div>
+        </div>
+        <p>You and <span id="matchName"></span> have liked each other!</p>
+        <div class="modal-actions">
+            <button class="btn secondary-btn" id="keepSwiping">Keep Swiping</button>
+            <button class="btn primary-btn" id="sendMessage">Send Message</button>
+        </div>
+    </div>
+</div>
+
 {% csrf_token %}
 {% endblock %}
 
 {% block extra_js %}
-<!-- <script src="{% static 'js/matches.js' %}"></script> -->
+<script src="{% static 'js/hammer.min.js' %}"></script>
+<script src="{% static 'js/matches.js' %}"></script>
 {% endblock %}

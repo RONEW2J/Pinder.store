@@ -106,3 +106,12 @@ class Message(models.Model):
 
     def __str__(self):
         return f"Message from {self.sender.username} in conversation {self.conversation.id}"
+    
+class SwipeAction(models.Model):
+    swiper = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='swipes_given', on_delete=models.CASCADE)
+    profile = models.ForeignKey('profiles.Profile', related_name='swipes_received', on_delete=models.CASCADE)
+    action = models.CharField(max_length=4, choices=[('like', 'Like'), ('pass', 'Pass')])
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('swiper', 'profile')

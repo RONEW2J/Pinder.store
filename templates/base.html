@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="{% static 'css/main.css' %}">
     {% block extra_css %}{% endblock %}
 </head>
-<body data-user-id="{{ request.user.id }}">
+<body {% if user.is_authenticated %}data-user-id="{{ user.id }}"{% endif %}>
     <header>
         <nav class="navbar">
             <div class="navbar-brand">

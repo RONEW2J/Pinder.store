@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (message && chatSocket.readyState === WebSocket.OPEN) {
                     chatSocket.send(JSON.stringify({
                         'message': message,
-                        'sender_id': currentUserId
+                        'sender_id': currentUserId // Убедитесь, что currentUserId корректно определен
                     }));
                     messageInput.value = '';
                 }

@@ -35,8 +35,7 @@ class ConversationSerializer(serializers.ModelSerializer):
 class MatchSerializer(serializers.ModelSerializer):
     user1 = UserSimpleSerializer(read_only=True)
     user2 = UserSimpleSerializer(read_only=True)
-    # You might want to include the conversation ID directly if a match always has one
-    conversation_id = serializers.SerializerMethodField()
+    conversation_id = serializers.IntegerField(source='conversation.id', read_only=True, allow_null=True) # Используем source
 
     class Meta:
         model = Match

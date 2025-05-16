@@ -17,12 +17,17 @@
         
         <div class="conversation-items">
             {% for conversation in conversations %}
-                <a href="{% url 'matches:chat-page' conversation.id %}" class="conversation-item">
-                    <div class="conversation-avatar" style="background-image: url('{{ conversation.other_profile.main_image.url }}')">
-                        {% if conversation.other_profile.is_online %}
-                            <div class="online-indicator"></div>
+                <a href="{% url 'matches:chat-detail' conversation.id %}" class="conversation-item">
+                    {% for p in conversation.participants.all %}
+                        {% if p != request.user %}
+                            <div class="conversation-avatar" style="background-image: url('{{ p.profile.main_image.url }}')">
+                                <h3>{{ p.first_name }}</h3>
+                                {% if conversation.other_profile.is_online %}
+                                    <div class="online-indicator"></div>
+                                {% endif %}
+                            </div>
                         {% endif %}
-                    </div>
+                    {% endfor %}
                     <div class="conversation-details">
                         <div class="conversation-header">
                             <h3>{{ conversation.other_profile.user.first_name }}</h3>
