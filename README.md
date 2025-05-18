@@ -1,4 +1,4 @@
-# 🔥 TinderCloneProject – Full-Stack Django REST API Application
+# 🔥 Pinder – Full-Stack Django REST API Application
 
 **TinderCloneProject** is a fully functional clone of the popular Tinder app, built as a final team project. It features a modern tech stack, RESTful APIs, background jobs, and a production-ready deployment on cloud infrastructure. This project demonstrates our team’s ability to design, develop, test, document, and deploy a scalable web application.
 
