@@ -81,7 +81,7 @@ Swagger UI is available at:
 
 ### The app is deployed on a production virtual machine.
 
- * 🔗 Production URL: https://yourdomain.com (replace with actual domain)
+ * 🔗 Production URL: https://pinder.store
 
  * ✅ TLS/HTTPS: Enabled via Let’s Encrypt
 
